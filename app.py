@@ -478,7 +478,13 @@ def serve_file(filename):
         download_name=os.path.basename(fp),
     )
 
-
+@app.errorhandler(Exception)
+def handle_error(e):
+    print("=" * 50)
+    print("SERVER ERROR:")
+    print(str(e))
+    print("=" * 50)
+    return jsonify({"error": str(e)}), 500
 
 #  Local Run
 # if __name__ == "__main__":
