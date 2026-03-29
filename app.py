@@ -116,7 +116,7 @@ def get_formats():
 
     try:
         logging.info(f"Fetching formats for URL: {url}")
-        yt = YouTube(url)
+        yt = YouTube(url, use_oauth=True, allow_oauth_cache=True)
 
         # ── Preset "smart" formats ────────────────────────────────────────
         def make_preset(fid, label, res, note_extra=""):
@@ -372,7 +372,7 @@ def start_download():
             logging.info(f"Starting download job {job_id} for {len(urls)} URL(s)")
             
             for url in urls:
-                yt = YouTube(url, on_progress_callback=build_progress_hook(job_id))
+                yt = YouTube(url, use_oauth=True, allow_oauth_cache=True, on_progress_callback=build_progress_hook(job_id))
                 title_safe = sanitize(yt.title or "video")
 
                 # Map of preset format_id → target resolution string
