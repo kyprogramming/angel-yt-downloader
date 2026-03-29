@@ -23,6 +23,8 @@ import uuid
 import mimetypes
 from flask import Flask, request, jsonify, send_file, Response
 from flask_cors import CORS
+import logging
+import traceback
 
 from pytubefix import YouTube, Playlist
 from pytubefix.cli import on_progress
@@ -476,6 +478,8 @@ def serve_file(filename):
         download_name=os.path.basename(fp),
     )
 
+
+
 #  Local Run
 # if __name__ == "__main__":
 #     print("")
@@ -493,4 +497,4 @@ if __name__ == "__main__":
     print("  |  Open:  http://0.0.0.0:5000 |")
     import os
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host="0.0.0.0", port=port, debug=True)
