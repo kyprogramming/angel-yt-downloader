@@ -1,19 +1,12 @@
 """
 YouTube Downloader - Flask Backend (pytubefix)
 ===============================================
-Install:
-    pip install flask flask-cors pytubefix
+Local run:
+    pip install -r requirements.txt
+    gunicorn app:app --bind 0.0.0.0:5000 --workers 1 --threads 4 --worker-class gthread --timeout 600
 
-For merging video+audio streams you also need FFmpeg:
-    Windows : https://ffmpeg.org/download.html  (add to PATH)
-    Mac     : brew install ffmpeg
-    Linux   : sudo apt install ffmpeg
-
-Run:
-    python app.py
-
-Open:   http://localhost:5000
-Put app.py and index.html in the SAME folder.
+Deploy to Render:
+    Push to GitHub, connect repo on render.com — it reads render.yaml automatically.
 """
 
 import os
@@ -21,45 +14,75 @@ import re
 import threading
 import uuid
 import mimetypes
+import logging
+import traceback
+import subprocess
+
 from flask import Flask, request, jsonify, send_file, Response
 from flask_cors import CORS
-
 from pytubefix import YouTube, Playlist
-from pytubefix.cli import on_progress
 
+# ---------------------------------------------------------------------------
+# Logging — goes to stdout so Render captures it in the dashboard
+# ---------------------------------------------------------------------------
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+log = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# App setup
+# ---------------------------------------------------------------------------
 app = Flask(__name__)
 CORS(app)
 
-DOWNLOAD_DIR = os.path.abspath("downloads")
+_default_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "downloads")
+DOWNLOAD_DIR = os.environ.get("DOWNLOAD_DIR", _default_dir)
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+log.info("DOWNLOAD_DIR = %s", DOWNLOAD_DIR)
 
-# job_id -> { status, percent, speed, filename, error, filepath }
-progress_store = {}
-
+progress_store = {}   # job_id -> dict
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 def sanitize(name):
-    """Remove characters that are illegal in filenames."""
-    return re.sub(r'[\\/*?:"<>|]', "_", name).strip()
+    """Strip characters illegal in filenames and trim whitespace."""
+    name = re.sub(r'[\\/*?:"<>|]', "_", name)
+    name = name.strip().strip(".")
+    return name or "video"
 
 
-def build_progress_hook(job_id):
-    """Return a pytubefix on_progress callback that updates progress_store."""
-    def hook(stream, chunk, bytes_remaining):
-        total = stream.filesize
-        done  = total - bytes_remaining
-        pct   = int(done / total * 100) if total else 0
-        # rough speed string (bytes/s not directly available, so we skip it)
-        progress_store[job_id].update({
-            "status":  "downloading",
-            "percent": pct,
-            "speed":   "",
-            "eta":     "",
-        })
-    return hook
+def is_playlist(url):
+    return "playlist" in url.lower() or "list=" in url
+
+
+def expand_urls(raw_urls):
+    """
+    Given a list of URLs (may include playlist URLs), return a flat list of
+    individual video URLs.  Playlist URLs are expanded via pytubefix.Playlist.
+    """
+    expanded = []
+    for url in raw_urls:
+        url = url.strip()
+        if not url:
+            continue
+        if is_playlist(url):
+            try:
+                pl = Playlist(url)
+                video_urls = list(pl.video_urls)
+                log.info("Playlist %s expanded to %d videos", url, len(video_urls))
+                expanded.extend(video_urls)
+            except Exception as e:
+                log.error("Failed to expand playlist %s: %s\n%s", url, e, traceback.format_exc())
+                # Fall through and try it as a plain video URL
+                expanded.append(url)
+        else:
+            expanded.append(url)
+    return expanded
 
 
 def format_size(n):
@@ -86,30 +109,42 @@ def index():
 @app.route("/api/formats", methods=["POST"])
 def get_formats():
     """
-    Return all available streams for a YouTube URL.
-    pytubefix exposes:
-        yt.streams          — all streams
-        stream.itag         — unique stream ID
-        stream.mime_type    — e.g. video/mp4, audio/webm
-        stream.resolution   — e.g. "1080p" (video) or None (audio)
-        stream.abr          — audio bitrate e.g. "128kbps"
-        stream.fps          — frames per second
-        stream.filesize     — bytes (may be None for some streams)
-        stream.is_progressive — True = video+audio in one file
-        stream.includes_audio_track
-        stream.includes_video_track
+    Return available streams for the FIRST video URL provided.
+    If a playlist URL is given, fetch info from the first video in the playlist.
+    Also returns playlist metadata (title + count) if applicable.
     """
-    url = (request.json or {}).get("url", "").strip()
+    body = request.json or {}
+    url  = body.get("url", "").strip()
     if not url:
         return jsonify({"error": "No URL provided"}), 400
 
-    try:
-        yt = YouTube(url)
+    log.info("get_formats called: %s", url)
 
-        # ── Preset "smart" formats ────────────────────────────────────────
-        # All merged presets use FFmpeg to combine video + best audio into MP4.
-        # Resolutions map:  4K=2160p  2K=1440p  FHD=1080p  HD=720p
-        #                   SD=480p   360p  240p  144p
+    try:
+        playlist_info = None
+        video_url     = url
+
+        # ── Expand playlist to get first video URL + metadata ─────────────
+        if is_playlist(url):
+            try:
+                pl = Playlist(url)
+                video_urls = list(pl.video_urls)
+                if not video_urls:
+                    return jsonify({"error": "Playlist is empty or private"}), 400
+                playlist_info = {
+                    "title": getattr(pl, "title", None) or "Playlist",
+                    "count": len(video_urls),
+                    "urls":  video_urls,
+                }
+                video_url = video_urls[0]
+                log.info("Playlist '%s' has %d videos; fetching formats from first", playlist_info["title"], len(video_urls))
+            except Exception as e:
+                log.error("Playlist expand error: %s\n%s", e, traceback.format_exc())
+                return jsonify({"error": "Could not load playlist: " + str(e)}), 500
+
+        # ── Fetch streams for the (first) video ───────────────────────────
+        yt = YouTube(video_url)
+
         def make_preset(fid, label, res, note_extra=""):
             return {
                 "format_id":  fid,
@@ -123,14 +158,14 @@ def get_formats():
             }
 
         presets = [
-            make_preset("merge_2160p", "4K  (2160p) + Audio",  "2160p", " — very large file"),
-            make_preset("merge_1440p", "2K  (1440p) + Audio",  "1440p", " — large file"),
-            make_preset("merge_1080p", "FHD (1080p) + Audio",  "1080p"),
-            make_preset("merge_720p",  "HD  (720p)  + Audio",  "720p"),
-            make_preset("merge_480p",  "SD  (480p)  + Audio",  "480p"),
-            make_preset("merge_360p",  "360p + Audio",          "360p"),
-            make_preset("merge_240p",  "240p + Audio",          "240p"),
-            make_preset("merge_144p",  "144p + Audio",          "144p", " — smallest size"),
+            make_preset("merge_2160p", "4K  (2160p) + Audio", "2160p", " — very large file"),
+            make_preset("merge_1440p", "2K  (1440p) + Audio", "1440p", " — large file"),
+            make_preset("merge_1080p", "FHD (1080p) + Audio", "1080p"),
+            make_preset("merge_720p",  "HD  (720p)  + Audio", "720p"),
+            make_preset("merge_480p",  "SD  (480p)  + Audio", "480p"),
+            make_preset("merge_360p",  "360p + Audio",         "360p"),
+            make_preset("merge_240p",  "240p + Audio",         "240p"),
+            make_preset("merge_144p",  "144p + Audio",         "144p", " — smallest size"),
             {
                 "format_id":  "best_video",
                 "label":      "Best Available + Audio",
@@ -163,37 +198,38 @@ def get_formats():
             },
         ]
 
-        # ── Raw streams from pytubefix ────────────────────────────────────
         raw_fmts = []
         for s in yt.streams:
-            if s.includes_video_track:
-                ftype = "video"
-                res   = s.resolution or "-"
-                label = "{} {} {}fps {}".format(
-                    res,
-                    s.mime_type.split("/")[-1].upper(),
-                    s.fps or "?",
-                    "(+audio)" if s.is_progressive else "(video only)",
-                )
-                note = "progressive" if s.is_progressive else "video only"
-            else:
-                ftype = "audio"
-                res   = s.abr or "-"
-                label = "{} {}".format(res, s.mime_type.split("/")[-1].upper())
-                note  = "audio only"
+            try:
+                if s.includes_video_track:
+                    ftype = "video"
+                    res   = s.resolution or "-"
+                    label = "{} {} {}fps {}".format(
+                        res,
+                        s.mime_type.split("/")[-1].upper(),
+                        s.fps or "?",
+                        "(+audio)" if s.is_progressive else "(video only)",
+                    )
+                    note = "progressive" if s.is_progressive else "video only"
+                else:
+                    ftype = "audio"
+                    res   = s.abr or "-"
+                    label = "{} {}".format(res, s.mime_type.split("/")[-1].upper())
+                    note  = "audio only"
 
-            raw_fmts.append({
-                "format_id":  str(s.itag),
-                "label":      label,
-                "ext":        s.mime_type.split("/")[-1],
-                "note":       note + " · " + format_size(s.filesize),
-                "type":       ftype,
-                "resolution": res,
-                "filesize":   format_size(s.filesize),
-                "raw":        True,
-            })
+                raw_fmts.append({
+                    "format_id":  str(s.itag),
+                    "label":      label,
+                    "ext":        s.mime_type.split("/")[-1],
+                    "note":       note + " · " + format_size(s.filesize),
+                    "type":       ftype,
+                    "resolution": res,
+                    "filesize":   format_size(s.filesize),
+                    "raw":        True,
+                })
+            except Exception as se:
+                log.warning("Skipping stream itag=%s: %s", getattr(s, "itag", "?"), se)
 
-        # Sort: video streams by resolution desc, then audio
         def sort_key(f):
             if f["type"] == "video":
                 try:
@@ -204,139 +240,149 @@ def get_formats():
 
         raw_fmts.sort(key=sort_key)
 
-        # Thumbnail — pytubefix gives thumbnail_url
-        thumb = getattr(yt, "thumbnail_url", "") or ""
-
-        # Duration
-        secs = yt.length or 0
+        thumb    = getattr(yt, "thumbnail_url", "") or ""
+        secs     = yt.length or 0
         duration = "{}:{:02d}".format(secs // 60, secs % 60)
 
-        return jsonify({
-            "title":     yt.title or "Unknown",
+        resp = {
+            "title":    yt.title or "Unknown",
             "thumbnail": thumb,
-            "duration":  duration,
-            "uploader":  yt.author or "-",
-            "formats":   presets + raw_fmts,
-        })
+            "duration": duration,
+            "uploader": yt.author or "-",
+            "formats":  presets + raw_fmts,
+        }
+        if playlist_info:
+            resp["playlist"] = playlist_info
+
+        log.info("get_formats OK: '%s', %d streams", resp["title"], len(raw_fmts))
+        return jsonify(resp)
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        log.error("get_formats error for %s: %s\n%s", url, e, traceback.format_exc())
+        return jsonify({"error": str(e), "detail": traceback.format_exc()}), 500
 
 
 @app.route("/api/download", methods=["POST"])
 def start_download():
-    data      = request.json or {}
-    urls      = data.get("urls", [])
-    format_id = data.get("format_id", "best_progressive")
+    body      = request.json or {}
+    raw_urls  = body.get("urls", [])
+    format_id = body.get("format_id", "best_progressive")
+
+    if not raw_urls:
+        return jsonify({"error": "No URLs provided"}), 400
+
+    # Expand playlists → flat video URL list
+    try:
+        urls = expand_urls(raw_urls)
+    except Exception as e:
+        log.error("expand_urls failed: %s\n%s", e, traceback.format_exc())
+        return jsonify({"error": "Failed to expand URLs: " + str(e)}), 500
 
     if not urls:
-        return jsonify({"error": "No URLs provided"}), 400
+        return jsonify({"error": "No downloadable URLs found"}), 400
+
+    log.info("Download job started: %d URLs, format=%s", len(urls), format_id)
 
     job_id = str(uuid.uuid4())[:8]
     progress_store[job_id] = {
-        "status":   "starting",
-        "percent":  0,
-        "speed":    "",
-        "eta":      "",
-        "note":     "",
-        "files":    [],
-        "error":    "",
+        "status":        "starting",
+        "current":       0,
+        "total":         len(urls),
+        "video_title":   "",
+        "video_percent": 0,
+        "percent":       0,
+        "note":          "",
+        "files":         [],
+        "error":         "",
+        "errors":        [],
     }
 
     def run():
-        import subprocess
 
-        def merge_video_audio(yt, title_safe, target_res=None):
-            """
-            Download the best video stream at target_res (e.g. '1080p', '720p')
-            and the best audio stream, then merge them into one MP4 with FFmpeg.
-            Falls back to next available resolution if exact match not found.
-            Returns the saved filename.
-            """
-            progress_store[job_id]["status"] = "downloading"
+        def make_video_hook(jid):
+            def hook(stream, chunk, bytes_remaining):
+                total = stream.filesize or 0
+                done  = total - bytes_remaining
+                vpct  = int(done / total * 100) if total else 0
+                progress_store[jid]["video_percent"] = vpct
+                idx   = progress_store[jid]["current"]
+                tot   = progress_store[jid]["total"]
+                progress_store[jid]["percent"] = int(((idx - 1) + vpct / 100) / tot * 100) if tot else vpct
+            return hook
 
-            # ── Pick video stream ─────────────────────────────────────────
-            vid_streams = (
+        def pick_video_stream(yt, target_res):
+            """Return best adaptive mp4 video stream at or below target_res."""
+            vid_streams = list(
                 yt.streams
                 .filter(adaptive=True, only_video=True, file_extension="mp4")
                 .order_by("resolution")
             )
+            if not vid_streams:
+                # Fallback: any adaptive video stream
+                vid_streams = list(
+                    yt.streams.filter(adaptive=True, only_video=True).order_by("resolution")
+                )
 
-            v_stream = None
             if target_res:
-                # Try exact resolution first
+                # Exact match first
                 for s in vid_streams:
                     if s.resolution == target_res:
-                        v_stream = s
-                        break
-                # Fallback: best stream at or below target
-                if not v_stream:
-                    target_int = int(target_res.replace("p", ""))
-                    for s in reversed(vid_streams.fmt_streams):
-                        try:
-                            if int(s.resolution.replace("p", "")) <= target_int:
-                                v_stream = s
-                                break
-                        except Exception:
-                            continue
-            # Final fallback: highest available
-            if not v_stream:
-                v_stream = vid_streams.last()
+                        return s
+                # Best available at or below target
+                target_int = int(target_res.replace("p", ""))
+                candidates = []
+                for s in vid_streams:
+                    try:
+                        if int(s.resolution.replace("p", "")) <= target_int:
+                            candidates.append(s)
+                    except Exception:
+                        pass
+                if candidates:
+                    return max(candidates, key=lambda s: int(s.resolution.replace("p", "")))
 
-            if not v_stream:
-                raise Exception("No adaptive video stream found.")
+            # Highest available
+            return vid_streams[-1] if vid_streams else None
 
-            # ── Pick audio stream ─────────────────────────────────────────
-            a_stream = (
-                yt.streams
-                .filter(only_audio=True)
-                .order_by("abr")
-                .last()
-            )
+        def merge_video_audio(yt, title_safe, target_res):
+            progress_store[job_id]["status"] = "downloading"
+
+            v_stream = pick_video_stream(yt, target_res)
+            if not v_stream:
+                raise Exception("No video stream found (target={})".format(target_res))
+
+            a_stream = yt.streams.filter(only_audio=True).order_by("abr").last()
             if not a_stream:
-                raise Exception("No audio stream found.")
+                raise Exception("No audio stream found")
 
             actual_res = v_stream.resolution or "video"
-            progress_store[job_id]["note"] = "Downloading {}p video...".format(actual_res)
+            log.info("  video stream: itag=%s res=%s  audio: itag=%s abr=%s",
+                     v_stream.itag, actual_res, a_stream.itag, a_stream.abr)
 
-            v_tmp = title_safe + "_vtmp.mp4"
-            a_tmp = title_safe + "_atmp" + "." + a_stream.mime_type.split("/")[-1]
-            out_name = "{}_{}merged.mp4".format(title_safe, actual_res + "_")
-
+            progress_store[job_id]["note"] = "Downloading {} video...".format(actual_res)
+            v_tmp    = title_safe + "_vtmp.mp4"
+            a_ext    = a_stream.mime_type.split("/")[-1]
+            a_tmp    = title_safe + "_atmp." + a_ext
+            out_name = "{}_{}_merged.mp4".format(title_safe, actual_res)
             v_path   = os.path.join(DOWNLOAD_DIR, v_tmp)
             a_path   = os.path.join(DOWNLOAD_DIR, a_tmp)
             out_path = os.path.join(DOWNLOAD_DIR, out_name)
 
-            # Download video
             v_stream.download(output_path=DOWNLOAD_DIR, filename=v_tmp)
+            log.info("  video downloaded: %s", v_path)
 
             progress_store[job_id]["note"] = "Downloading audio..."
-            progress_store[job_id]["percent"] = 60
-
-            # Download audio
             a_stream.download(output_path=DOWNLOAD_DIR, filename=a_tmp)
+            log.info("  audio downloaded: %s", a_path)
 
-            # Merge with FFmpeg
-            progress_store[job_id]["status"]  = "processing"
-            progress_store[job_id]["percent"] = 85
-            progress_store[job_id]["note"]    = "Merging with FFmpeg..."
+            progress_store[job_id]["status"] = "processing"
+            progress_store[job_id]["note"]   = "Merging with FFmpeg..."
 
-            result = subprocess.run(
-                [
-                    "ffmpeg", "-y",
-                    "-i", v_path,
-                    "-i", a_path,
-                    "-c:v", "copy",
-                    "-c:a", "aac",
-                    "-b:a", "192k",
-                    "-movflags", "+faststart",
-                    out_path,
-                ],
-                capture_output=True,
-                text=True,
-            )
+            cmd = ["ffmpeg", "-y", "-i", v_path, "-i", a_path,
+                   "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
+                   "-movflags", "+faststart", out_path]
+            log.info("  FFmpeg cmd: %s", " ".join(cmd))
+            result = subprocess.run(cmd, capture_output=True, text=True)
 
-            # Clean up temp files
             for tmp in [v_path, a_path]:
                 try:
                     os.remove(tmp)
@@ -344,52 +390,60 @@ def start_download():
                     pass
 
             if result.returncode != 0:
-                raise Exception("FFmpeg error: " + result.stderr[-300:])
+                log.error("FFmpeg failed (rc=%d):\nSTDOUT: %s\nSTDERR: %s",
+                          result.returncode, result.stdout[-500:], result.stderr[-500:])
+                raise Exception("FFmpeg failed (rc={}): {}".format(result.returncode, result.stderr[-300:]))
 
+            log.info("  merged: %s", out_path)
             return out_name
 
-        saved_files = []
-        try:
-            for url in urls:
-                yt = YouTube(url, on_progress_callback=build_progress_hook(job_id))
-                title_safe = sanitize(yt.title or "video")
+        MERGE_PRESETS = {
+            "merge_2160p": "2160p",
+            "merge_1440p": "1440p",
+            "merge_1080p": "1080p",
+            "merge_720p":  "720p",
+            "merge_480p":  "480p",
+            "merge_360p":  "360p",
+            "merge_240p":  "240p",
+            "merge_144p":  "144p",
+            "best_video":  None,
+        }
 
-                # Map of preset format_id → target resolution string
-                MERGE_PRESETS = {
-                    "merge_2160p": "2160p",
-                    "merge_1440p": "1440p",
-                    "merge_1080p": "1080p",
-                    "merge_720p":  "720p",
-                    "merge_480p":  "480p",
-                    "merge_360p":  "360p",
-                    "merge_240p":  "240p",
-                    "merge_144p":  "144p",
-                    "best_video":  None,   # None = highest available
-                }
+        saved_files = []
+        total       = len(urls)
+
+        for idx, url in enumerate(urls, start=1):
+            log.info("Downloading video %d/%d: %s", idx, total, url)
+            progress_store[job_id].update({
+                "status":        "downloading",
+                "current":       idx,
+                "video_percent": 0,
+                "note":          "Fetching video info...",
+            })
+            try:
+                yt         = YouTube(url, on_progress_callback=make_video_hook(job_id))
+                title      = yt.title or "video_{}".format(idx)
+                title_safe = sanitize(title)
+                progress_store[job_id]["video_title"] = title
+                log.info("  title: %s", title)
 
                 if format_id in MERGE_PRESETS:
                     fname = merge_video_audio(yt, title_safe, target_res=MERGE_PRESETS[format_id])
-                    saved_files.append(fname)
 
-                # ── Best progressive (no FFmpeg) ──────────────────────────
                 elif format_id == "best_progressive":
                     stream = yt.streams.get_highest_resolution()
                     if not stream:
                         raise Exception("No progressive stream found")
                     fname = title_safe + "." + stream.mime_type.split("/")[-1]
                     stream.download(output_path=DOWNLOAD_DIR, filename=fname)
-                    saved_files.append(fname)
 
-                # ── Audio only ────────────────────────────────────────────
                 elif format_id == "best_audio":
                     stream = yt.streams.filter(only_audio=True).order_by("abr").last()
                     if not stream:
                         raise Exception("No audio stream found")
                     fname = title_safe + "." + stream.mime_type.split("/")[-1]
                     stream.download(output_path=DOWNLOAD_DIR, filename=fname)
-                    saved_files.append(fname)
 
-                # ── Raw itag ──────────────────────────────────────────────
                 else:
                     try:
                         itag = int(format_id)
@@ -398,25 +452,33 @@ def start_download():
                     stream = yt.streams.get_by_itag(itag)
                     if not stream:
                         raise Exception("Stream itag {} not found".format(itag))
-                    ext   = stream.mime_type.split("/")[-1]
-                    fname = title_safe + "." + ext
+                    fname = title_safe + "." + stream.mime_type.split("/")[-1]
                     stream.download(output_path=DOWNLOAD_DIR, filename=fname)
-                    saved_files.append(fname)
 
+                saved_files.append(fname)
+                progress_store[job_id]["percent"] = int(idx / total * 100)
+                log.info("  saved: %s", fname)
+
+            except Exception as e:
+                err_msg = "Video {}/{} '{}' failed: {}".format(idx, total, url, str(e))
+                log.error("%s\n%s", err_msg, traceback.format_exc())
+                progress_store[job_id]["errors"].append(err_msg)
+
+        if saved_files:
             progress_store[job_id].update({
                 "status":  "done",
                 "percent": 100,
+                "note":    "Done! {} of {} saved.".format(len(saved_files), total),
                 "files":   saved_files,
             })
-
-        except Exception as e:
-            progress_store[job_id].update({
-                "status": "error",
-                "error":  str(e),
-            })
+            log.info("Job %s done: %d/%d files saved", job_id, len(saved_files), total)
+        else:
+            msg = "All {} video(s) failed. Check errors list.".format(total)
+            progress_store[job_id].update({"status": "error", "error": msg})
+            log.error("Job %s: %s", job_id, msg)
 
     threading.Thread(target=run, daemon=True).start()
-    return jsonify({"job_id": job_id})
+    return jsonify({"job_id": job_id, "total": len(urls)})
 
 
 @app.route("/api/progress/<job_id>")
@@ -436,7 +498,6 @@ def list_files():
 
 @app.route("/api/files/clear", methods=["DELETE"])
 def clear_all_files():
-    """Delete every file inside the downloads folder."""
     deleted, errors = [], []
     for fname in os.listdir(DOWNLOAD_DIR):
         fp = os.path.join(DOWNLOAD_DIR, fname)
@@ -446,18 +507,19 @@ def clear_all_files():
                 deleted.append(fname)
             except Exception as e:
                 errors.append("{}: {}".format(fname, str(e)))
+    log.info("Cleared %d files", len(deleted))
     return jsonify({"deleted": len(deleted), "errors": errors})
 
 
 @app.route("/api/files/delete/<path:filename>", methods=["DELETE"])
 def delete_file(filename):
-    """Delete a single file from the downloads folder."""
     fp = os.path.realpath(os.path.join(DOWNLOAD_DIR, filename))
     if not fp.startswith(DOWNLOAD_DIR):
         return jsonify({"error": "Forbidden"}), 403
     if not os.path.isfile(fp):
         return jsonify({"error": "File not found"}), 404
     os.remove(fp)
+    log.info("Deleted file: %s", filename)
     return jsonify({"deleted": filename})
 
 
@@ -477,12 +539,8 @@ def serve_file(filename):
     )
 
 
+# ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    print("")
-    print("  +------------------------------------------+")
-    print("  |  YouTube Downloader (pytubefix)           |")
-    print("  |  Open:  http://localhost:5000             |")
-    print("  |  Files: ./downloads/                      |")
-    print("  +------------------------------------------+")
-    print("")
-    app.run(debug=False, port=5000, threaded=True)
+    port = int(os.environ.get("PORT", 5000))
+    log.info("Starting dev server on port %d", port)
+    app.run(host="0.0.0.0", port=port, debug=False, threaded=True)

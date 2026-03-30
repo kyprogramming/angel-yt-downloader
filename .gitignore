@@ -1,6 +1,22 @@
-venv/
+# Downloaded videos — never commit these
+downloads/
+/tmp/
+ 
+# Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
 .env
-downloads/
-*.log
+.venv
+venv/
+env/
+ 
+# OS
+.DS_Store
+Thumbs.db
+ 

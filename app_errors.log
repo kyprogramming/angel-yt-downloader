@@ -1,0 +1,237 @@
+2026-03-29 12:43:33,444 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.4.26:5000
+2026-03-29 12:43:33,445 - INFO - [33mPress CTRL+C to quit[0m
+2026-03-29 12:44:04,933 - INFO - Request: POST /api/formats
+2026-03-29 12:44:04,934 - DEBUG - Request data: {'url': 'https://www.youtube.com/watch?v=kfXy4W0aD40'}
+2026-03-29 12:44:04,935 - INFO - Fetching formats for URL: https://www.youtube.com/watch?v=kfXy4W0aD40
+2026-03-29 12:44:04,937 - DEBUG - matched regex search: (?:v=|\/)([0-9A-Za-z_-]{11}).*
+2026-03-29 12:44:04,938 - DEBUG - Looking for visitorData in InnerTube API
+2026-03-29 12:44:05,184 - DEBUG - VisitorData obtained successfully
+2026-03-29 12:44:05,441 - DEBUG - applying descrambler
+2026-03-29 12:44:05,442 - DEBUG - Found title in vid_info
+2026-03-29 12:44:05,442 - INFO - Successfully fetched formats for: Taras | Munjya | Sharvari & Abhay Verma | Sachin-Jigar, Jasmine Sandlas | Amitabh Bhattacharya
+2026-03-29 12:44:05,444 - INFO - 127.0.0.1 - - [29/Mar/2026 12:44:05] "POST /api/formats HTTP/1.1" 200 -
+2026-03-29 12:44:12,589 - INFO - Request: POST /api/download
+2026-03-29 12:44:12,589 - DEBUG - Request data: {'urls': ['https://www.youtube.com/watch?v=kfXy4W0aD40'], 'format_id': 'merge_1440p'}
+2026-03-29 12:44:12,590 - INFO - Starting download job 88dfba65 for 1 URL(s)
+2026-03-29 12:44:12,590 - INFO - 127.0.0.1 - - [29/Mar/2026 12:44:12] "POST /api/download HTTP/1.1" 200 -
+2026-03-29 12:44:12,590 - DEBUG - matched regex search: (?:v=|\/)([0-9A-Za-z_-]{11}).*
+2026-03-29 12:44:12,591 - DEBUG - Looking for visitorData in InnerTube API
+2026-03-29 12:44:12,866 - DEBUG - VisitorData obtained successfully
+2026-03-29 12:44:13,208 - DEBUG - Found title in vid_info
+2026-03-29 12:44:13,208 - DEBUG - applying descrambler
+2026-03-29 12:44:13,210 - DEBUG - downloading (118162049 total bytes) file to C:\Users\kkyad\1.My Files\Projects\ytDownloader-master\yt-new-downloader\downloads\Taras _ Munjya _ Sharvari & Abhay Verma _ Sachin-Jigar, Jasmine Sandlas _ Amitabh Bhattacharya_vtmp.mp4
+2026-03-29 12:44:13,316 - INFO - Request: GET /api/progress/88dfba65
+2026-03-29 12:44:13,316 - INFO - 127.0.0.1 - - [29/Mar/2026 12:44:13] "GET /api/progress/88dfba65 HTTP/1.1" 200 -
+2026-03-29 12:44:14,011 - INFO - Request: GET /api/progress/88dfba65
+2026-03-29 12:44:14,013 - INFO - 127.0.0.1 - - [29/Mar/2026 12:44:14] "GET /api/progress/88dfba65 HTTP/1.1" 200 -
+2026-03-29 12:44:14,245 - DEBUG - download remaining: 108724865
+2026-03-29 12:44:14,709 - INFO - Request: GET /api/progress/88dfba65
+2026-03-29 12:44:14,709 - INFO - 127.0.0.1 - - [29/Mar/2026 12:44:14] "GET /api/progress/88dfba65 HTTP/1.1" 200 -
+2026-03-29 12:44:14,929 - DEBUG - download remaining: 99287681
+2026-03-29 12:44:15,401 - INFO - Request: GET /api/progress/88dfba65
+2026-03-29 12:44:15,401 - INFO - 127.0.0.1 - - [29/Mar/2026 12:44:15] "GET /api/progress/88dfba65 HTTP/1.1" 200 -
+2026-03-29 12:44:15,622 - DEBUG - download remaining: 89850497
+2026-03-29 12:44:16,110 - INFO - Request: GET /api/progress/88dfba65
+2026-03-29 12:44:16,111 - INFO - 127.0.0.1 - - [29/Mar/2026 12:44:16] "GET /api/progress/88dfba65 HTTP/1.1" 200 -
+2026-03-29 12:44:16,281 - DEBUG - download remaining: 80413313
+2026-03-29 12:44:16,807 - INFO - Request: GET /api/progress/88dfba65
+2026-03-29 12:44:16,808 - INFO - 127.0.0.1 - - [29/Mar/2026 12:44:16] "GET /api/progress/88dfba65 HTTP/1.1" 200 -
+2026-03-29 12:44:16,947 - DEBUG - download remaining: 70976129
+2026-03-29 12:44:17,514 - INFO - Request: GET /api/progress/88dfba65
+2026-03-29 12:44:17,515 - INFO - 127.0.0.1 - - [29/Mar/2026 12:44:17] "GET /api/progress/88dfba65 HTTP/1.1" 200 -
+2026-03-29 12:44:17,619 - DEBUG - download remaining: 61538945
+2026-03-29 12:44:18,207 - INFO - Request: GET /api/progress/88dfba65
+2026-03-29 12:44:18,208 - INFO - 127.0.0.1 - - [29/Mar/2026 12:44:18] "GET /api/progress/88dfba65 HTTP/1.1" 200 -
+2026-03-29 12:44:18,284 - DEBUG - download remaining: 52101761
+2026-03-29 12:44:18,902 - INFO - Request: GET /api/progress/88dfba65
+2026-03-29 12:44:18,902 - INFO - 127.0.0.1 - - [29/Mar/2026 12:44:18] "GET /api/progress/88dfba65 HTTP/1.1" 200 -
+2026-03-29 12:44:18,936 - DEBUG - download remaining: 42664577
+2026-03-29 12:44:19,612 - INFO - Request: GET /api/progress/88dfba65
+2026-03-29 12:44:19,613 - INFO - 127.0.0.1 - - [29/Mar/2026 12:44:19] "GET /api/progress/88dfba65 HTTP/1.1" 200 -
+2026-03-29 12:44:19,614 - DEBUG - download remaining: 33227393
+2026-03-29 12:44:20,257 - DEBUG - download remaining: 23790209
+2026-03-29 12:44:20,308 - INFO - Request: GET /api/progress/88dfba65
+2026-03-29 12:44:20,308 - INFO - 127.0.0.1 - - [29/Mar/2026 12:44:20] "GET /api/progress/88dfba65 HTTP/1.1" 200 -
+2026-03-29 12:44:20,901 - DEBUG - download remaining: 14353025
+2026-03-29 12:44:21,003 - INFO - Request: GET /api/progress/88dfba65
+2026-03-29 12:44:21,004 - INFO - 127.0.0.1 - - [29/Mar/2026 12:44:21] "GET /api/progress/88dfba65 HTTP/1.1" 200 -
+2026-03-29 12:44:21,564 - DEBUG - download remaining: 4915841
+2026-03-29 12:44:21,706 - INFO - Request: GET /api/progress/88dfba65
+2026-03-29 12:44:21,707 - INFO - 127.0.0.1 - - [29/Mar/2026 12:44:21] "GET /api/progress/88dfba65 HTTP/1.1" 200 -
+2026-03-29 12:44:22,020 - DEBUG - download remaining: 0
+2026-03-29 12:44:22,025 - DEBUG - download finished
+2026-03-29 12:44:22,027 - DEBUG - downloading (2828217 total bytes) file to C:\Users\kkyad\1.My Files\Projects\ytDownloader-master\yt-new-downloader\downloads\Taras _ Munjya _ Sharvari & Abhay Verma _ Sachin-Jigar, Jasmine Sandlas _ Amitabh Bhattacharya_atmp.webm
+2026-03-29 12:44:22,407 - INFO - Request: GET /api/progress/88dfba65
+2026-03-29 12:44:22,407 - INFO - 127.0.0.1 - - [29/Mar/2026 12:44:22] "GET /api/progress/88dfba65 HTTP/1.1" 200 -
+2026-03-29 12:44:22,492 - DEBUG - download remaining: 0
+2026-03-29 12:44:22,496 - DEBUG - download finished
+2026-03-29 12:44:23,100 - INFO - Request: GET /api/progress/88dfba65
+2026-03-29 12:44:23,101 - INFO - 127.0.0.1 - - [29/Mar/2026 12:44:23] "GET /api/progress/88dfba65 HTTP/1.1" 200 -
+2026-03-29 12:44:23,813 - INFO - Request: GET /api/progress/88dfba65
+2026-03-29 12:44:23,814 - INFO - 127.0.0.1 - - [29/Mar/2026 12:44:23] "GET /api/progress/88dfba65 HTTP/1.1" 200 -
+2026-03-29 12:44:24,514 - INFO - Request: GET /api/progress/88dfba65
+2026-03-29 12:44:24,515 - INFO - 127.0.0.1 - - [29/Mar/2026 12:44:24] "GET /api/progress/88dfba65 HTTP/1.1" 200 -
+2026-03-29 12:44:25,874 - INFO - Request: GET /api/progress/88dfba65
+2026-03-29 12:44:25,875 - INFO - 127.0.0.1 - - [29/Mar/2026 12:44:25] "GET /api/progress/88dfba65 HTTP/1.1" 200 -
+2026-03-29 12:44:26,868 - INFO - Request: GET /api/progress/88dfba65
+2026-03-29 12:44:26,869 - INFO - 127.0.0.1 - - [29/Mar/2026 12:44:26] "GET /api/progress/88dfba65 HTTP/1.1" 200 -
+2026-03-29 12:44:27,878 - INFO - Request: GET /api/progress/88dfba65
+2026-03-29 12:44:27,879 - INFO - 127.0.0.1 - - [29/Mar/2026 12:44:27] "GET /api/progress/88dfba65 HTTP/1.1" 200 -
+2026-03-29 12:44:28,881 - INFO - Request: GET /api/progress/88dfba65
+2026-03-29 12:44:28,882 - INFO - 127.0.0.1 - - [29/Mar/2026 12:44:28] "GET /api/progress/88dfba65 HTTP/1.1" 200 -
+2026-03-29 12:44:29,877 - INFO - Request: GET /api/progress/88dfba65
+2026-03-29 12:44:29,879 - INFO - 127.0.0.1 - - [29/Mar/2026 12:44:29] "GET /api/progress/88dfba65 HTTP/1.1" 200 -
+2026-03-29 12:44:30,497 - INFO - Request: GET /api/progress/88dfba65
+2026-03-29 12:44:30,499 - INFO - 127.0.0.1 - - [29/Mar/2026 12:44:30] "GET /api/progress/88dfba65 HTTP/1.1" 200 -
+2026-03-29 12:44:30,809 - INFO - Request: GET /api/progress/88dfba65
+2026-03-29 12:44:30,810 - INFO - 127.0.0.1 - - [29/Mar/2026 12:44:30] "GET /api/progress/88dfba65 HTTP/1.1" 200 -
+2026-03-29 12:44:31,032 - INFO - Download job 88dfba65 completed successfully. Files: ['Taras _ Munjya _ Sharvari & Abhay Verma _ Sachin-Jigar, Jasmine Sandlas _ Amitabh Bhattacharya_1440p_merged.mp4']
+2026-03-29 12:44:31,503 - INFO - Request: GET /api/progress/88dfba65
+2026-03-29 12:44:31,504 - INFO - 127.0.0.1 - - [29/Mar/2026 12:44:31] "GET /api/progress/88dfba65 HTTP/1.1" 200 -
+2026-03-29 12:44:31,509 - INFO - Request: GET /api/files
+2026-03-29 12:44:31,511 - INFO - 127.0.0.1 - - [29/Mar/2026 12:44:31] "GET /api/files HTTP/1.1" 200 -
+2026-03-29 12:44:38,080 - INFO - Request: GET /api/files/Taras _ Munjya _ Sharvari & Abhay Verma _ Sachin-Jigar, Jasmine Sandlas _ Amitabh Bhattacharya_1440p_merged.mp4
+2026-03-29 12:44:38,185 - INFO - 127.0.0.1 - - [29/Mar/2026 12:44:38] "GET /api/files/Taras%20_%20Munjya%20_%20Sharvari%20&%20Abhay%20Verma%20_%20Sachin-Jigar,%20Jasmine%20Sandlas%20_%20Amitabh%20Bhattacharya_1440p_merged.mp4 HTTP/1.1" 200 -
+2026-03-29 13:00:57,704 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.4.26:5000
+2026-03-29 13:00:57,705 - INFO - [33mPress CTRL+C to quit[0m
+2026-03-29 13:01:32,183 - INFO - Request: GET /
+2026-03-29 13:01:32,185 - INFO - 127.0.0.1 - - [29/Mar/2026 13:01:32] "GET / HTTP/1.1" 200 -
+2026-03-29 13:01:32,262 - INFO - Request: GET /api/files
+2026-03-29 13:01:32,265 - INFO - 127.0.0.1 - - [29/Mar/2026 13:01:32] "GET /api/files HTTP/1.1" 200 -
+2026-03-29 13:01:34,845 - INFO - Request: POST /api/formats
+2026-03-29 13:01:34,846 - DEBUG - Request data: {'url': 'https://www.youtube.com/watch?v=kfXy4W0aD40&list=PLpV3cRpc7TqiTrxwmBsuU4hyS1Ytxt67D&index=10'}
+2026-03-29 13:01:34,846 - INFO - Fetching formats for URL: https://www.youtube.com/watch?v=kfXy4W0aD40&list=PLpV3cRpc7TqiTrxwmBsuU4hyS1Ytxt67D&index=10
+2026-03-29 13:01:34,847 - DEBUG - matched regex search: (?:v=|\/)([0-9A-Za-z_-]{11}).*
+2026-03-29 13:01:34,847 - WARNING - `use_po_token` and `po_token_verifier` is deprecated and will be removed soon.
+2026-03-29 13:01:36,287 - DEBUG - finding initial function name
+2026-03-29 13:01:36,290 - DEBUG - Pattern failed: ytplayer\.config\s*=\s*
+2026-03-29 13:01:36,290 - DEBUG - Could not parse object.
+2026-03-29 13:01:36,314 - DEBUG - finished regex search, matched: (/s/player/[\w\d]+/[\w\d_/.]+/base\.js)
+2026-03-29 13:01:36,314 - DEBUG - player JS: /s/player/8e54e4ea/player_ias.vflset/en_US/base.js
+2026-03-29 13:01:36,963 - DEBUG - matched regex search: signatureTimestamp:(\d*)
+2026-03-29 13:09:40,657 - ERROR - ============================================================
+2026-03-29 13:09:40,658 - ERROR - ERROR in /api/formats:
+2026-03-29 13:09:40,658 - ERROR - URL: https://www.youtube.com/watch?v=kfXy4W0aD40&list=PLpV3cRpc7TqiTrxwmBsuU4hyS1Ytxt67D&index=10
+2026-03-29 13:09:40,658 - ERROR - Error type: EOFError
+2026-03-29 13:09:40,659 - ERROR - Error message: 
+2026-03-29 13:09:40,659 - ERROR - Full traceback:
+2026-03-29 13:09:40,676 - ERROR - Traceback (most recent call last):
+  File "C:\Users\kkyad\1.My Files\Projects\ytDownloader-master\yt-new-downloader\app.py", line 178, in get_formats
+  File "C:\Users\kkyad\1.My Files\Projects\ytDownloader-master\yt-new-downloader\venv\lib\site-packages\pytubefix\__main__.py", line 769, in streams
+    self.check_availability()
+  File "C:\Users\kkyad\1.My Files\Projects\ytDownloader-master\yt-new-downloader\venv\lib\site-packages\pytubefix\__main__.py", line 364, in check_availability
+    status, messages = extract.playability_status(self.vid_info)
+  File "C:\Users\kkyad\1.My Files\Projects\ytDownloader-master\yt-new-downloader\venv\lib\site-packages\pytubefix\__main__.py", line 494, in vid_info
+    self._vid_info = self.vid_info_client()
+  File "C:\Users\kkyad\1.My Files\Projects\ytDownloader-master\yt-new-downloader\venv\lib\site-packages\pytubefix\__main__.py", line 538, in vid_info_client
+    innertube_response = call_innertube(optional_client)
+  File "C:\Users\kkyad\1.My Files\Projects\ytDownloader-master\yt-new-downloader\venv\lib\site-packages\pytubefix\__main__.py", line 531, in call_innertube
+    response = innertube.player(self.video_id)
+  File "C:\Users\kkyad\1.My Files\Projects\ytDownloader-master\yt-new-downloader\venv\lib\site-packages\pytubefix\innertube.py", line 877, in player
+    return self._call_api(endpoint, query, self.base_data)
+  File "C:\Users\kkyad\1.My Files\Projects\ytDownloader-master\yt-new-downloader\venv\lib\site-packages\pytubefix\innertube.py", line 780, in _call_api
+    self.fetch_po_token()
+  File "C:\Users\kkyad\1.My Files\Projects\ytDownloader-master\yt-new-downloader\venv\lib\site-packages\pytubefix\innertube.py", line 734, in fetch_po_token
+    self.access_visitorData, self.access_po_token = self.po_token_verifier()
+  File "C:\Users\kkyad\1.My Files\Projects\ytDownloader-master\yt-new-downloader\venv\lib\site-packages\pytubefix\innertube.py", line 529, in _default_po_token_verifier
+    visitor_data = str(input("Enter with your visitorData: "))
+EOFError
+
+2026-03-29 13:09:40,678 - ERROR - ============================================================
+2026-03-29 13:09:40,679 - INFO - 127.0.0.1 - - [29/Mar/2026 13:09:40] "[35m[1mPOST /api/formats HTTP/1.1[0m" 500 -
+2026-03-29 13:34:58,970 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.4.26:5000
+2026-03-29 13:34:58,971 - INFO - [33mPress CTRL+C to quit[0m
+2026-03-29 14:16:51,291 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.4.26:5000
+2026-03-29 14:16:51,292 - INFO - [33mPress CTRL+C to quit[0m
+2026-03-29 14:17:51,325 - INFO - Request: GET /
+2026-03-29 14:17:51,434 - INFO - 127.0.0.1 - - [29/Mar/2026 14:17:51] "GET / HTTP/1.1" 200 -
+2026-03-29 14:17:51,578 - INFO - Request: GET /api/files
+2026-03-29 14:17:51,583 - INFO - 127.0.0.1 - - [29/Mar/2026 14:17:51] "GET /api/files HTTP/1.1" 200 -
+2026-03-29 14:17:51,807 - INFO - Request: GET /favicon.ico
+2026-03-29 14:17:51,807 - ERROR - ============================================================
+2026-03-29 14:17:51,808 - ERROR - UNHANDLED EXCEPTION CAUGHT BY GLOBAL HANDLER
+2026-03-29 14:17:51,808 - ERROR - Error type: NotFound
+2026-03-29 14:17:51,808 - ERROR - Error message: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-03-29 14:17:51,809 - ERROR - Full traceback:
+2026-03-29 14:17:51,866 - ERROR - Traceback (most recent call last):
+  File "C:\Users\kkyad\1.My Files\Projects\ytDownloader-master\yt-new-downloader\venv\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\kkyad\1.My Files\Projects\ytDownloader-master\yt-new-downloader\venv\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\Users\kkyad\1.My Files\Projects\ytDownloader-master\yt-new-downloader\venv\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\Users\kkyad\1.My Files\Projects\ytDownloader-master\yt-new-downloader\venv\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\Users\kkyad\1.My Files\Projects\ytDownloader-master\yt-new-downloader\venv\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+
+2026-03-29 14:17:51,869 - ERROR - ============================================================
+2026-03-29 14:17:51,876 - INFO - 127.0.0.1 - - [29/Mar/2026 14:17:51] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 500 -
+2026-03-29 14:17:56,130 - INFO - Request: POST /api/formats
+2026-03-29 14:17:56,132 - DEBUG - Request data: {'url': 'https://www.youtube.com/watch?v=huxhqphtDrM&list=PLpV3cRpc7TqiTrxwmBsuU4hyS1Ytxt67D&index=7'}
+2026-03-29 14:17:56,133 - INFO - Fetching formats for URL: https://www.youtube.com/watch?v=huxhqphtDrM&list=PLpV3cRpc7TqiTrxwmBsuU4hyS1Ytxt67D&index=7
+2026-03-29 14:17:56,138 - ERROR - PO token error: [WinError 2] The system cannot find the file specified
+2026-03-29 14:17:56,138 - DEBUG - matched regex search: (?:v=|\/)([0-9A-Za-z_-]{11}).*
+2026-03-29 14:17:56,139 - DEBUG - Looking for visitorData in InnerTube API
+2026-03-29 14:17:56,393 - DEBUG - VisitorData obtained successfully
+2026-03-29 14:17:56,623 - DEBUG - applying descrambler
+2026-03-29 14:17:56,624 - DEBUG - Found title in vid_info
+2026-03-29 14:17:56,627 - INFO - Successfully fetched formats for: Besharam Rang Song | Pathaan | Shah Rukh Khan, Deepika Padukone | Vishal & Sheykhar | Shilpa, Kumaar
+2026-03-29 14:17:56,627 - INFO - 127.0.0.1 - - [29/Mar/2026 14:17:56] "POST /api/formats HTTP/1.1" 200 -
+2026-03-29 14:18:38,751 - INFO - Request: POST /api/download
+2026-03-29 14:18:38,752 - DEBUG - Request data: {'urls': ['https://www.youtube.com/watch?v=huxhqphtDrM&list=PLpV3cRpc7TqiTrxwmBsuU4hyS1Ytxt67D&index=7'], 'format_id': 'merge_720p'}
+2026-03-29 14:18:38,752 - INFO - Starting download job 4288d443 for 1 URL(s)
+2026-03-29 14:18:38,753 - INFO - 127.0.0.1 - - [29/Mar/2026 14:18:38] "POST /api/download HTTP/1.1" 200 -
+2026-03-29 14:18:38,753 - DEBUG - matched regex search: (?:v=|\/)([0-9A-Za-z_-]{11}).*
+2026-03-29 14:18:38,758 - ERROR - PO token error: [WinError 2] The system cannot find the file specified
+2026-03-29 14:18:38,758 - ERROR - Download job 4288d443 failed: name 'title_safe' is not defined
+2026-03-29 14:18:38,760 - ERROR - Traceback (most recent call last):
+  File "C:\Users\kkyad\1.My Files\Projects\ytDownloader-master\yt-new-downloader\app.py", line 450, in run
+    fname = merge_video_audio(yt, title_safe, target_res=MERGE_PRESETS[format_id])
+NameError: name 'title_safe' is not defined
+
+2026-03-29 14:18:39,459 - INFO - Request: GET /api/progress/4288d443
+2026-03-29 14:18:39,460 - INFO - 127.0.0.1 - - [29/Mar/2026 14:18:39] "GET /api/progress/4288d443 HTTP/1.1" 200 -
+2026-03-29 14:18:55,392 - INFO - Request: DELETE /api/files/clear
+2026-03-29 14:18:55,392 - INFO - 127.0.0.1 - - [29/Mar/2026 14:18:55] "DELETE /api/files/clear HTTP/1.1" 200 -
+2026-03-29 14:18:56,661 - INFO - Request: POST /api/download
+2026-03-29 14:18:56,662 - DEBUG - Request data: {'urls': ['https://www.youtube.com/watch?v=huxhqphtDrM&list=PLpV3cRpc7TqiTrxwmBsuU4hyS1Ytxt67D&index=7'], 'format_id': 'merge_720p'}
+2026-03-29 14:18:56,662 - INFO - Starting download job 9c49d53a for 1 URL(s)
+2026-03-29 14:18:56,663 - INFO - 127.0.0.1 - - [29/Mar/2026 14:18:56] "POST /api/download HTTP/1.1" 200 -
+2026-03-29 14:18:56,663 - DEBUG - matched regex search: (?:v=|\/)([0-9A-Za-z_-]{11}).*
+2026-03-29 14:18:56,667 - ERROR - PO token error: [WinError 2] The system cannot find the file specified
+2026-03-29 14:18:56,668 - ERROR - Download job 9c49d53a failed: name 'title_safe' is not defined
+2026-03-29 14:18:56,668 - ERROR - Traceback (most recent call last):
+  File "C:\Users\kkyad\1.My Files\Projects\ytDownloader-master\yt-new-downloader\app.py", line 450, in run
+    fname = merge_video_audio(yt, title_safe, target_res=MERGE_PRESETS[format_id])
+NameError: name 'title_safe' is not defined
+
+2026-03-29 14:18:57,682 - INFO - Request: GET /api/progress/9c49d53a
+2026-03-29 14:18:57,683 - INFO - 127.0.0.1 - - [29/Mar/2026 14:18:57] "GET /api/progress/9c49d53a HTTP/1.1" 200 -
+2026-03-29 14:19:02,309 - INFO - Request: POST /api/download
+2026-03-29 14:19:02,309 - DEBUG - Request data: {'urls': ['https://www.youtube.com/watch?v=huxhqphtDrM&list=PLpV3cRpc7TqiTrxwmBsuU4hyS1Ytxt67D&index=7'], 'format_id': 'merge_720p'}
+2026-03-29 14:19:02,310 - INFO - Starting download job e10a92b1 for 1 URL(s)
+2026-03-29 14:19:02,310 - INFO - 127.0.0.1 - - [29/Mar/2026 14:19:02] "POST /api/download HTTP/1.1" 200 -
+2026-03-29 14:19:02,310 - DEBUG - matched regex search: (?:v=|\/)([0-9A-Za-z_-]{11}).*
+2026-03-29 14:19:02,317 - ERROR - PO token error: [WinError 2] The system cannot find the file specified
+2026-03-29 14:19:02,317 - ERROR - Download job e10a92b1 failed: name 'title_safe' is not defined
+2026-03-29 14:19:02,318 - ERROR - Traceback (most recent call last):
+  File "C:\Users\kkyad\1.My Files\Projects\ytDownloader-master\yt-new-downloader\app.py", line 450, in run
+    fname = merge_video_audio(yt, title_safe, target_res=MERGE_PRESETS[format_id])
+NameError: name 'title_safe' is not defined
+
+2026-03-29 14:19:03,343 - INFO - Request: GET /api/progress/e10a92b1
+2026-03-29 14:19:03,344 - INFO - 127.0.0.1 - - [29/Mar/2026 14:19:03] "GET /api/progress/e10a92b1 HTTP/1.1" 200 -

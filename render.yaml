@@ -1,0 +1,12 @@
+services:
+- type: web
+  name: yt-downloader
+  runtime: docker # use our Dockerfile (gives us FFmpeg)
+  dockerfilePath: ./Dockerfile
+  plan: free # change to "starter" or higher for persistent disk
+  envVars:
+  - key: DOWNLOAD_DIR
+    value: /tmp/downloads
+  # Render sets PORT automatically — no need to define it here
+  healthCheckPath: /
+  autoDeploy: true # redeploy on every git push

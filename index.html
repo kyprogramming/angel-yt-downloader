@@ -609,6 +609,78 @@
             flex-shrink: 0;
         }
 
+        /* Queue list */
+        .q-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 7px 10px;
+            border-radius: 6px;
+            font-size: .78rem;
+            margin-bottom: 5px;
+            background: var(--sur);
+            border: 1px solid var(--bdr);
+        }
+
+        .q-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: .65rem;
+            color: var(--mut);
+            flex-shrink: 0;
+            width: 24px;
+            text-align: center;
+        }
+
+        .q-title {
+            flex: 1;
+            color: var(--txt);
+            word-break: break-word;
+        }
+
+        .q-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: .6rem;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+
+        .q-waiting {
+            background: rgba(100, 116, 139, .12);
+            color: #94a3b8;
+            border: 1px solid rgba(100, 116, 139, .25);
+        }
+
+        .q-active {
+            background: rgba(59, 130, 246, .12);
+            color: var(--blue);
+            border: 1px solid rgba(59, 130, 246, .3);
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        .q-done {
+            background: rgba(34, 197, 94, .1);
+            color: var(--grn);
+            border: 1px solid rgba(34, 197, 94, .25);
+        }
+
+        .q-error {
+            background: rgba(230, 57, 70, .1);
+            color: #ff8888;
+            border: 1px solid rgba(230, 57, 70, .25);
+        }
+
+        .err-item {
+            font-size: .74rem;
+            color: #ff8888;
+            background: rgba(230, 57, 70, .06);
+            border: 1px solid rgba(230, 57, 70, .2);
+            border-radius: 6px;
+            padding: 7px 10px;
+            margin-bottom: 4px;
+        }
+
         .spinner {
             width: 14px;
             height: 14px;
@@ -777,482 +849,619 @@
                     <div class="chips">
                         <span class="chip" id="vDur"></span>
                         <span class="chip" id="vUp"></span>
+                        <span class="chip" id="vPlaylist"
+                            style="display:none;color:var(--blue);border-color:rgba(59,130,246,.3);"></span>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Format Picker -->
-        <div class="card" id="fmtSec">
-            <p class="lbl">Select Stream</p>
-            <div class="tabs" id="tabsRow">
-                <button class="tab active" data-filter="all">All</button>
-                <button class="tab" data-filter="preset">Smart Presets</button>
-                <button class="tab" data-filter="video">Video</button>
-                <button class="tab" data-filter="audio">Audio</button>
-            </div>
-            <div class="grid" id="fmtGrid"></div>
-        </div>
+            <!-- Server error detail (shown when 500 errors include traceback) -->
+            <details id="errDetail" style="display:none;margin-top:10px;">
+                <summary style="font-size:.75rem;color:var(--mut);cursor:pointer;">Show error detail</summary>
+                <pre id="errDetailText"
+                    style="font-size:.7rem;color:#ff8888;background:rgba(230,57,70,.06);border:1px solid rgba(230,57,70,.2);border-radius:6px;padding:10px;margin-top:6px;overflow-x:auto;white-space:pre-wrap;word-break:break-word;"></pre>
+            </details>
 
-        <!-- Download Bar -->
-        <div class="card" id="dlBar">
-            <p class="lbl">Download</p>
-            <div class="selrow">
-                <div class="selinfo" id="selInfo">No stream selected</div>
-                <button class="btn br" id="dlBtn" disabled>Download</button>
-            </div>
-            <div id="prog">
-                <div class="track">
-                    <div class="fill" id="fillBar"></div>
+            <!-- Format Picker -->
+            <div class="card" id="fmtSec">
+                <p class="lbl">Select Stream</p>
+                <div class="tabs" id="tabsRow">
+                    <button class="tab active" data-filter="all">All</button>
+                    <button class="tab" data-filter="preset">Smart Presets</button>
+                    <button class="tab" data-filter="video">Video</button>
+                    <button class="tab" data-filter="audio">Audio</button>
                 </div>
-                <div class="pmeta">
-                    <span id="pStat"><span class="dot"></span>Starting...</span>
-                    <span id="pPct">0%</span>
+                <div class="grid" id="fmtGrid"></div>
+            </div>
+
+            <!-- Download Bar -->
+            <div class="card" id="dlBar">
+                <p class="lbl">Download</p>
+                <div class="selrow">
+                    <div class="selinfo" id="selInfo">No stream selected</div>
+                    <button class="btn br" id="dlBtn" disabled>Download</button>
                 </div>
-                <div class="pmeta" style="margin-top: 5px;">
-                    <span id="pNote"></span>
+                <div id="prog">
+                    <!-- Overall bar -->
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                        <span id="pStat"><span class="dot"></span>Starting...</span>
+                        <span style="font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--mut);">
+                            <span id="pCurrent">0</span> / <span id="pTotal">0</span> videos
+                            &nbsp;&nbsp;<span id="pPct">0%</span>
+                        </span>
+                    </div>
+                    <div class="track">
+                        <div class="fill" id="fillBar"></div>
+                    </div>
+
+                    <!-- Current video info -->
+                    <div style="font-size:.78rem;color:var(--mut);margin-bottom:10px;">
+                        <span id="pNote"></span>
+                        <span id="pVideoTitle" style="color:var(--txt);font-weight:600;"></span>
+                    </div>
+
+                    <!-- Per-video progress bar -->
+                    <div style="font-size:.68rem;color:var(--mut);margin-bottom:4px;">Current video</div>
+                    <div class="track" style="height:5px;margin-bottom:12px;">
+                        <div class="fill" id="fillBarVideo"
+                            style="background:linear-gradient(90deg,var(--blue),var(--grn));"></div>
+                    </div>
+
+                    <!-- Queue list -->
+                    <div id="queueList"></div>
+
+                    <!-- Per-video errors -->
+                    <div id="errList" style="margin-top:8px;"></div>
+                </div>
+            </div>
+
+            <!-- Downloaded Files -->
+            <div class="card" id="filesSec">
+                <div class="fhead">
+                    <p class="lbl" style="margin: 0;">Downloaded Files</p>
+                    <div style="display:flex;gap:8px;">
+                        <button class="btn bg sm" id="refreshBtn">&#8635; Refresh</button>
+                        <button class="btn btn-danger sm" id="clearFilesBtn">&#128465; Clear All</button>
+                    </div>
+                </div>
+                <div id="filesList"></div>
+            </div>
+
+        </div><!-- /wrap -->
+
+        <!-- Confirm modal -->
+        <div class="overlay" id="confirmOverlay">
+            <div class="modal">
+                <h4>Clear all downloaded files?</h4>
+                <p>This will permanently delete every file in the <strong>downloads</strong> folder. This cannot be
+                    undone.</p>
+                <div class="modal-row">
+                    <button class="btn bg" id="cancelClearBtn">Cancel</button>
+                    <button class="btn btn-danger" id="confirmClearBtn">Yes, Delete All</button>
                 </div>
             </div>
         </div>
 
-        <!-- Downloaded Files -->
-        <div class="card" id="filesSec">
-            <div class="fhead">
-                <p class="lbl" style="margin: 0;">Downloaded Files</p>
-                <div style="display:flex;gap:8px;">
-                    <button class="btn bg sm" id="refreshBtn">&#8635; Refresh</button>
-                    <button class="btn btn-danger sm" id="clearFilesBtn">&#128465; Clear All</button>
-                </div>
-            </div>
-            <div id="filesList"></div>
-        </div>
+        <!-- Toast -->
+        <div class="toast" id="toast"></div>
 
-    </div><!-- /wrap -->
+        <script>
+            (function () {
+                "use strict";
 
-    <!-- Confirm modal -->
-    <div class="overlay" id="confirmOverlay">
-        <div class="modal">
-            <h4>Clear all downloaded files?</h4>
-            <p>This will permanently delete every file in the <strong>downloads</strong> folder. This cannot be undone.
-            </p>
-            <div class="modal-row">
-                <button class="btn bg" id="cancelClearBtn">Cancel</button>
-                <button class="btn btn-danger" id="confirmClearBtn">Yes, Delete All</button>
-            </div>
-        </div>
-    </div>
+                // ── State ────────────────────────────────────────────────────────────────
+                var allFmts = [];
+                var selFmt = null;
+                var curURLs = [];
+                var pollTimer = null;
+                var activeFilter = "all";
 
-    <!-- Toast -->
-    <div class="toast" id="toast"></div>
+                // ── DOM refs ─────────────────────────────────────────────────────────────
+                var urlInput = document.getElementById("urlInput");
+                var fetchBtn = document.getElementById("fetchBtn");
+                var clearBtn = document.getElementById("clearBtn");
+                var dlBtn = document.getElementById("dlBtn");
+                var refreshBtn = document.getElementById("refreshBtn");
+                var clearFilesBtn = document.getElementById("clearFilesBtn");
+                var confirmClearBtn = document.getElementById("confirmClearBtn");
+                var cancelClearBtn = document.getElementById("cancelClearBtn");
+                var confirmOverlay = document.getElementById("confirmOverlay");
+                var errBox = document.getElementById("errBox");
+                var fmtGrid = document.getElementById("fmtGrid");
+                var selInfo = document.getElementById("selInfo");
+                var fillBar = document.getElementById("fillBar");
+                var tabsRow = document.getElementById("tabsRow");
 
-    <script>
-        (function () {
-            "use strict";
+                // ── Wire up static buttons ───────────────────────────────────────────────
+                fetchBtn.addEventListener("click", fetchFormats);
+                clearBtn.addEventListener("click", clearAll);
+                dlBtn.addEventListener("click", startDownload);
+                refreshBtn.addEventListener("click", loadFiles);
 
-            // ── State ────────────────────────────────────────────────────────────────
-            var allFmts = [];
-            var selFmt = null;
-            var curURLs = [];
-            var pollTimer = null;
-            var activeFilter = "all";
-
-            // ── DOM refs ─────────────────────────────────────────────────────────────
-            var urlInput = document.getElementById("urlInput");
-            var fetchBtn = document.getElementById("fetchBtn");
-            var clearBtn = document.getElementById("clearBtn");
-            var dlBtn = document.getElementById("dlBtn");
-            var refreshBtn = document.getElementById("refreshBtn");
-            var clearFilesBtn = document.getElementById("clearFilesBtn");
-            var confirmClearBtn = document.getElementById("confirmClearBtn");
-            var cancelClearBtn = document.getElementById("cancelClearBtn");
-            var confirmOverlay = document.getElementById("confirmOverlay");
-            var errBox = document.getElementById("errBox");
-            var fmtGrid = document.getElementById("fmtGrid");
-            var selInfo = document.getElementById("selInfo");
-            var fillBar = document.getElementById("fillBar");
-            var tabsRow = document.getElementById("tabsRow");
-
-            // ── Wire up static buttons ───────────────────────────────────────────────
-            fetchBtn.addEventListener("click", fetchFormats);
-            clearBtn.addEventListener("click", clearAll);
-            dlBtn.addEventListener("click", startDownload);
-            refreshBtn.addEventListener("click", loadFiles);
-
-            // Clear All Files — show confirm modal
-            clearFilesBtn.addEventListener("click", function () {
-                confirmOverlay.classList.add("show");
-            });
-            cancelClearBtn.addEventListener("click", function () {
-                confirmOverlay.classList.remove("show");
-            });
-            confirmOverlay.addEventListener("click", function (e) {
-                if (e.target === confirmOverlay) confirmOverlay.classList.remove("show");
-            });
-            confirmClearBtn.addEventListener("click", function () {
-                confirmOverlay.classList.remove("show");
-                clearAllFiles();
-            });
-
-            // Tab buttons
-            var tabs = tabsRow.querySelectorAll(".tab");
-            for (var ti = 0; ti < tabs.length; ti++) {
-                tabs[ti].addEventListener("click", function () {
-                    var f = this.getAttribute("data-filter");
-                    for (var i = 0; i < tabs.length; i++) tabs[i].classList.remove("active");
-                    this.classList.add("active");
-                    renderFmts(f);
+                // Clear All Files — show confirm modal
+                clearFilesBtn.addEventListener("click", function () {
+                    confirmOverlay.classList.add("show");
                 });
-            }
-
-            // ── Fetch formats ─────────────────────────────────────────────────────────
-            function fetchFormats() {
-                var raw = urlInput.value.trim();
-                if (!raw) { showErr("Please enter at least one URL."); return; }
-                hideErr();
-
-                curURLs = [];
-                var lines = raw.split("\n");
-                for (var i = 0; i < lines.length; i++) {
-                    var line = lines[i].trim();
-                    if (line.length > 0) curURLs.push(line);
-                }
-                if (curURLs.length === 0) { showErr("No valid URLs found."); return; }
-
-                fetchBtn.innerHTML = "<span class=\"spinner\"></span> Fetching...";
-                fetchBtn.disabled = true;
-
-                post("/api/formats", { url: curURLs[0] }, function (err, data) {
-                    fetchBtn.textContent = "Fetch Streams";
-                    fetchBtn.disabled = false;
-
-                    if (err) { showErr(err); return; }
-                    if (data.error) { showErr(data.error); return; }
-
-                    document.getElementById("vTitle").textContent = data.title || "";
-                    document.getElementById("vDur").textContent = data.duration || "";
-                    document.getElementById("vUp").textContent = data.uploader || "";
-                    document.getElementById("thumbImg").src = data.thumbnail || "";
-                    show("vInfo");
-
-                    allFmts = data.formats || [];
-                    renderFmts("all");
-                    show("fmtSec");
-                    show("dlBar");
-                    document.getElementById("fmtSec").scrollIntoView({ behavior: "smooth" });
+                cancelClearBtn.addEventListener("click", function () {
+                    confirmOverlay.classList.remove("show");
                 });
-            }
-
-            // ── Render stream cards ───────────────────────────────────────────────────
-            function renderFmts(filter) {
-                activeFilter = filter;
-
-                var list = [];
-                for (var i = 0; i < allFmts.length; i++) {
-                    var f = allFmts[i];
-                    if (filter === "preset" && f.raw) continue;
-                    if (filter === "video" && f.type !== "video") continue;
-                    if (filter === "audio" && f.type !== "audio") continue;
-                    list.push(f);
-                }
-
-                var html = "";
-                for (var j = 0; j < list.length; j++) {
-                    var fmt = list[j];
-                    var sel = selFmt && selFmt.format_id === fmt.format_id;
-
-                    // Badge — one colour per resolution tier
-                    var PRESET_BADGES = {
-                        "merge_2160p": { cls: "b4k", txt: "4K 2160p" },
-                        "merge_1440p": { cls: "b2k", txt: "2K 1440p" },
-                        "merge_1080p": { cls: "bfhd", txt: "FHD 1080p" },
-                        "merge_720p": { cls: "bhd", txt: "HD 720p" },
-                        "merge_480p": { cls: "bsd", txt: "SD 480p" },
-                        "merge_360p": { cls: "bsd", txt: "360p" },
-                        "merge_240p": { cls: "blow", txt: "240p" },
-                        "merge_144p": { cls: "blow", txt: "144p" },
-                        "best_video": { cls: "bp", txt: "best quality" },
-                        "best_progressive": { cls: "bpro", txt: "progressive" },
-                        "best_audio": { cls: "ba", txt: "audio only" }
-                    };
-                    var badgeCls, badgeTxt;
-                    if (!fmt.raw && PRESET_BADGES[fmt.format_id]) {
-                        badgeCls = PRESET_BADGES[fmt.format_id].cls;
-                        badgeTxt = PRESET_BADGES[fmt.format_id].txt;
-                    } else if (fmt.type === "audio") {
-                        badgeCls = "ba"; badgeTxt = "audio";
-                    } else if (fmt.note && fmt.note.indexOf("progressive") !== -1) {
-                        badgeCls = "bpro"; badgeTxt = "progressive";
-                    } else {
-                        badgeCls = "bv"; badgeTxt = "adaptive";
-                    }
-
-                    html += "<div class=\"fc" + (sel ? " sel" : "") + "\" data-j=\"" + j + "\">";
-                    html += "<div class=\"tick\"><svg viewBox=\"0 0 12 12\"><polyline points=\"2,6 5,9 10,3\"/></svg></div>";
-                    html += "<div class=\"fctop\">";
-                    html += "<span class=\"fcname\">" + escHtml(fmt.label) + "</span>";
-                    html += "<span class=\"badge " + badgeCls + "\">" + badgeTxt + "</span>";
-                    html += "</div>";
-                    html += "<div class=\"fcnote\">" + escHtml(fmt.note) + "</div>";
-                    if (fmt.filesize && fmt.filesize !== "-") {
-                        html += "<div class=\"fcsize\">" + escHtml(fmt.filesize) + " &middot; ." + escHtml(fmt.ext) + "</div>";
-                    } else {
-                        html += "<div class=\"fcsize\">." + escHtml(fmt.ext) + "</div>";
-                    }
-                    html += "</div>";
-                }
-
-                fmtGrid.innerHTML = html;
-
-                // Attach click handlers (closure captures each fmt object safely)
-                var cards = fmtGrid.querySelectorAll(".fc");
-                for (var k = 0; k < cards.length; k++) {
-                    (function (card, fmt) {
-                        card.addEventListener("click", function () { pickFmt(fmt); });
-                    })(cards[k], list[k]);
-                }
-            }
-
-            function pickFmt(fmt) {
-                selFmt = fmt;
-                renderFmts(activeFilter);
-                selInfo.innerHTML =
-                    "Selected: <strong>" + escHtml(fmt.label) + "</strong>"
-                    + " &middot; ." + escHtml(fmt.ext)
-                    + " &middot; " + escHtml(fmt.note);
-                dlBtn.disabled = false;
-            }
-
-            // ── Start download ────────────────────────────────────────────────────────
-            function startDownload() {
-                if (!selFmt) return;
-
-                dlBtn.innerHTML = "<span class=\"spinner\"></span> Starting...";
-                dlBtn.disabled = true;
-                show("prog");
-                setProg(0, "starting", "");
-
-                post("/api/download", { urls: curURLs, format_id: selFmt.format_id }, function (err, data) {
-                    if (err || (data && data.error)) {
-                        showErr(err || data.error);
-                        resetDlBtn();
-                        return;
-                    }
-                    pollProgress(data.job_id);
+                confirmOverlay.addEventListener("click", function (e) {
+                    if (e.target === confirmOverlay) confirmOverlay.classList.remove("show");
                 });
-            }
+                confirmClearBtn.addEventListener("click", function () {
+                    confirmOverlay.classList.remove("show");
+                    clearAllFiles();
+                });
 
-            function pollProgress(jobId) {
-                clearInterval(pollTimer);
-                pollTimer = setInterval(function () {
-                    get("/api/progress/" + jobId, function (err, d) {
-                        if (err || !d) return;
-                        setProg(d.percent || 0, d.status, d.note || d.speed || "");
-                        if (d.status === "done") {
-                            clearInterval(pollTimer);
-                            setProg(100, "done", "");
-                            resetDlBtn();
-                            loadFiles();
-                        }
-                        if (d.status === "error") {
-                            clearInterval(pollTimer);
-                            showErr("Download failed: " + (d.error || "unknown error"));
-                            resetDlBtn();
-                        }
+                // Tab buttons
+                var tabs = tabsRow.querySelectorAll(".tab");
+                for (var ti = 0; ti < tabs.length; ti++) {
+                    tabs[ti].addEventListener("click", function () {
+                        var f = this.getAttribute("data-filter");
+                        for (var i = 0; i < tabs.length; i++) tabs[i].classList.remove("active");
+                        this.classList.add("active");
+                        renderFmts(f);
                     });
-                }, 700);
-            }
+                }
 
-            function setProg(pct, status, note) {
-                fillBar.style.width = pct + "%";
-                document.getElementById("pPct").textContent = pct + "%";
+                // ── Fetch formats ─────────────────────────────────────────────────────────
+                function fetchFormats() {
+                    var raw = urlInput.value.trim();
+                    if (!raw) { showErr("Please enter at least one URL."); return; }
+                    hideErr();
 
-                var dotCls = "dot";
-                if (status === "done") dotCls = "dot dot-done";
-                if (status === "error") dotCls = "dot dot-err";
-
-                var label = "Downloading...";
-                if (status === "done") label = "Complete";
-                if (status === "error") label = "Error";
-                if (status === "processing") label = "Merging video + audio...";
-                if (status === "starting") label = "Starting...";
-
-                document.getElementById("pStat").innerHTML = "<span class=\"" + dotCls + "\"></span>" + label;
-                document.getElementById("pNote").textContent = note || "";
-            }
-
-            function resetDlBtn() {
-                dlBtn.textContent = "Download Again";
-                dlBtn.disabled = false;
-            }
-
-            // ── Load downloaded files ─────────────────────────────────────────────────
-            function loadFiles() {
-                get("/api/files", function (err, files) {
-                    if (err || !files || files.length === 0) {
-                        document.getElementById("filesSec").classList.remove("show");
-                        document.getElementById("filesList").innerHTML = "";
-                        return;
+                    curURLs = [];
+                    var lines = raw.split("\n");
+                    for (var i = 0; i < lines.length; i++) {
+                        var line = lines[i].trim();
+                        if (line.length > 0) curURLs.push(line);
                     }
-                    show("filesSec");
+                    if (curURLs.length === 0) { showErr("No valid URLs found."); return; }
+
+                    fetchBtn.innerHTML = "<span class=\"spinner\"></span> Fetching...";
+                    fetchBtn.disabled = true;
+
+                    post("/api/formats", { url: curURLs[0] }, function (err, data) {
+                        fetchBtn.textContent = "Fetch Streams";
+                        fetchBtn.disabled = false;
+
+                        if (err) { showErr(err); return; }
+                        if (data.error) {
+                            showErr(data.error);
+                            if (data.detail) {
+                                document.getElementById("errDetail").style.display = "block";
+                                document.getElementById("errDetailText").textContent = data.detail;
+                            }
+                            return;
+                        }
+
+                        document.getElementById("vTitle").textContent = data.title || "";
+                        document.getElementById("vDur").textContent = data.duration || "";
+                        document.getElementById("vUp").textContent = data.uploader || "";
+                        document.getElementById("thumbImg").src = data.thumbnail || "";
+
+                        // Playlist info
+                        var plChip = document.getElementById("vPlaylist");
+                        if (data.playlist) {
+                            plChip.textContent = "Playlist: " + data.playlist.count + " videos";
+                            plChip.style.display = "inline-block";
+                            // Replace curURLs with full playlist video URL list so download gets all of them
+                            curURLs = data.playlist.urls;
+                        } else {
+                            plChip.style.display = "none";
+                        }
+
+                        document.getElementById("errDetail").style.display = "none";
+                        show("vInfo");
+
+                        allFmts = data.formats || [];
+                        renderFmts("all");
+                        show("fmtSec");
+                        show("dlBar");
+                        document.getElementById("fmtSec").scrollIntoView({ behavior: "smooth" });
+                    });
+                }
+
+                // ── Render stream cards ───────────────────────────────────────────────────
+                function renderFmts(filter) {
+                    activeFilter = filter;
+
+                    var list = [];
+                    for (var i = 0; i < allFmts.length; i++) {
+                        var f = allFmts[i];
+                        if (filter === "preset" && f.raw) continue;
+                        if (filter === "video" && f.type !== "video") continue;
+                        if (filter === "audio" && f.type !== "audio") continue;
+                        list.push(f);
+                    }
 
                     var html = "";
-                    for (var i = 0; i < files.length; i++) {
-                        var f = files[i];
-                        var parts = f.name.split(".");
-                        var ext = parts.length > 1 ? parts[parts.length - 1].toUpperCase().slice(0, 4) : "FILE";
-                        var dlUrl = "/api/files/" + encodeURIComponent(f.name);
-                        var delUrl = "/api/files/delete/" + encodeURIComponent(f.name);
-                        html += "<div class=\"frow\" id=\"frow-" + i + "\">";
-                        html += "<div class=\"fico\">" + escHtml(ext) + "</div>";
-                        html += "<span class=\"fname\">" + escHtml(f.name) + "</span>";
-                        html += "<span class=\"fsize\">" + fmtBytes(f.size) + "</span>";
-                        html += "<a class=\"btn bg sm\" href=\"" + dlUrl + "\">&#8595; Save</a>";
-                        html += "<button class=\"btn btn-danger btn-icon sm\" data-del=\"" + escHtml(delUrl) + "\" data-name=\"" + escHtml(f.name) + "\" title=\"Delete this file\">&#128465;</button>";
+                    for (var j = 0; j < list.length; j++) {
+                        var fmt = list[j];
+                        var sel = selFmt && selFmt.format_id === fmt.format_id;
+
+                        // Badge — one colour per resolution tier
+                        var PRESET_BADGES = {
+                            "merge_2160p": { cls: "b4k", txt: "4K 2160p" },
+                            "merge_1440p": { cls: "b2k", txt: "2K 1440p" },
+                            "merge_1080p": { cls: "bfhd", txt: "FHD 1080p" },
+                            "merge_720p": { cls: "bhd", txt: "HD 720p" },
+                            "merge_480p": { cls: "bsd", txt: "SD 480p" },
+                            "merge_360p": { cls: "bsd", txt: "360p" },
+                            "merge_240p": { cls: "blow", txt: "240p" },
+                            "merge_144p": { cls: "blow", txt: "144p" },
+                            "best_video": { cls: "bp", txt: "best quality" },
+                            "best_progressive": { cls: "bpro", txt: "progressive" },
+                            "best_audio": { cls: "ba", txt: "audio only" }
+                        };
+                        var badgeCls, badgeTxt;
+                        if (!fmt.raw && PRESET_BADGES[fmt.format_id]) {
+                            badgeCls = PRESET_BADGES[fmt.format_id].cls;
+                            badgeTxt = PRESET_BADGES[fmt.format_id].txt;
+                        } else if (fmt.type === "audio") {
+                            badgeCls = "ba"; badgeTxt = "audio";
+                        } else if (fmt.note && fmt.note.indexOf("progressive") !== -1) {
+                            badgeCls = "bpro"; badgeTxt = "progressive";
+                        } else {
+                            badgeCls = "bv"; badgeTxt = "adaptive";
+                        }
+
+                        html += "<div class=\"fc" + (sel ? " sel" : "") + "\" data-j=\"" + j + "\">";
+                        html += "<div class=\"tick\"><svg viewBox=\"0 0 12 12\"><polyline points=\"2,6 5,9 10,3\"/></svg></div>";
+                        html += "<div class=\"fctop\">";
+                        html += "<span class=\"fcname\">" + escHtml(fmt.label) + "</span>";
+                        html += "<span class=\"badge " + badgeCls + "\">" + badgeTxt + "</span>";
+                        html += "</div>";
+                        html += "<div class=\"fcnote\">" + escHtml(fmt.note) + "</div>";
+                        if (fmt.filesize && fmt.filesize !== "-") {
+                            html += "<div class=\"fcsize\">" + escHtml(fmt.filesize) + " &middot; ." + escHtml(fmt.ext) + "</div>";
+                        } else {
+                            html += "<div class=\"fcsize\">." + escHtml(fmt.ext) + "</div>";
+                        }
                         html += "</div>";
                     }
-                    document.getElementById("filesList").innerHTML = html;
 
-                    // Attach per-file delete handlers
-                    var delBtns = document.getElementById("filesList").querySelectorAll("[data-del]");
-                    for (var d = 0; d < delBtns.length; d++) {
-                        delBtns[d].addEventListener("click", function () {
-                            var delUrl = this.getAttribute("data-del");
-                            var fname = this.getAttribute("data-name");
-                            var row = this.closest(".frow");
-                            deleteFile(delUrl, fname, row);
-                        });
+                    fmtGrid.innerHTML = html;
+
+                    // Attach click handlers (closure captures each fmt object safely)
+                    var cards = fmtGrid.querySelectorAll(".fc");
+                    for (var k = 0; k < cards.length; k++) {
+                        (function (card, fmt) {
+                            card.addEventListener("click", function () { pickFmt(fmt); });
+                        })(cards[k], list[k]);
                     }
-                });
-            }
+                }
 
-            // ── Clear ALL files ───────────────────────────────────────────────────────
-            function clearAllFiles() {
-                clearFilesBtn.innerHTML = "<span class=\"spinner\"></span>";
-                clearFilesBtn.disabled = true;
+                function pickFmt(fmt) {
+                    selFmt = fmt;
+                    renderFmts(activeFilter);
+                    selInfo.innerHTML =
+                        "Selected: <strong>" + escHtml(fmt.label) + "</strong>"
+                        + " &middot; ." + escHtml(fmt.ext)
+                        + " &middot; " + escHtml(fmt.note);
+                    dlBtn.disabled = false;
+                }
 
-                var xhr = new XMLHttpRequest();
-                xhr.open("DELETE", "/api/files/clear", true);
-                xhr.onload = function () {
-                    clearFilesBtn.innerHTML = "&#128465; Clear All";
-                    clearFilesBtn.disabled = false;
-                    if (xhr.status === 200) {
-                        var res = JSON.parse(xhr.responseText);
-                        showToast("Deleted " + res.deleted + " file" + (res.deleted !== 1 ? "s" : ""), "success");
-                        document.getElementById("filesSec").classList.remove("show");
-                        document.getElementById("filesList").innerHTML = "";
-                    } else {
-                        showToast("Failed to clear files", "error");
+                // ── Start download ────────────────────────────────────────────────────────
+                function startDownload() {
+                    if (!selFmt) return;
+
+                    dlBtn.innerHTML = "<span class=\"spinner\"></span> Starting...";
+                    dlBtn.disabled = true;
+                    show("prog");
+
+                    // Build initial queue display
+                    buildQueue(curURLs);
+                    resetProg(curURLs.length);
+
+                    post("/api/download", { urls: curURLs, format_id: selFmt.format_id }, function (err, data) {
+                        if (err || (data && data.error)) {
+                            showErr(err || (data && data.error));
+                            resetDlBtn();
+                            return;
+                        }
+                        pollProgress(data.job_id, data.total || curURLs.length);
+                    });
+                }
+
+                // Build the queue list with waiting status for all URLs
+                function buildQueue(urls) {
+                    var html = "";
+                    for (var i = 0; i < urls.length; i++) {
+                        var shortUrl = urls[i].length > 55 ? urls[i].slice(0, 55) + "..." : urls[i];
+                        html += "<div class=\"q-item\" id=\"qitem-" + i + "\">";
+                        html += "<span class=\"q-num\">" + (i + 1) + "</span>";
+                        html += "<span class=\"q-title\" id=\"qtitle-" + i + "\">" + escHtml(shortUrl) + "</span>";
+                        html += "<span class=\"q-badge q-waiting\" id=\"qbadge-" + i + "\">waiting</span>";
+                        html += "</div>";
                     }
-                };
-                xhr.onerror = function () {
-                    clearFilesBtn.innerHTML = "&#128465; Clear All";
-                    clearFilesBtn.disabled = false;
-                    showToast("Connection error", "error");
-                };
-                xhr.send();
-            }
+                    document.getElementById("queueList").innerHTML = html;
+                    document.getElementById("errList").innerHTML = "";
+                }
 
-            // ── Delete a single file ──────────────────────────────────────────────────
-            function deleteFile(delUrl, fname, row) {
-                var xhr = new XMLHttpRequest();
-                xhr.open("DELETE", delUrl, true);
-                xhr.onload = function () {
-                    if (xhr.status === 200) {
-                        row.style.transition = "opacity .25s";
-                        row.style.opacity = "0";
-                        setTimeout(function () {
-                            row.remove();
-                            // If no rows left, hide the section
-                            var remaining = document.querySelectorAll("#filesList .frow");
-                            if (remaining.length === 0) {
-                                document.getElementById("filesSec").classList.remove("show");
+                function resetProg(total) {
+                    document.getElementById("fillBar").style.width = "0%";
+                    document.getElementById("fillBarVideo").style.width = "0%";
+                    document.getElementById("pPct").textContent = "0%";
+                    document.getElementById("pCurrent").textContent = "0";
+                    document.getElementById("pTotal").textContent = total;
+                    document.getElementById("pNote").textContent = "";
+                    document.getElementById("pVideoTitle").textContent = "";
+                    document.getElementById("pStat").innerHTML = "<span class=\"dot\"></span>Starting...";
+                }
+
+                function pollProgress(jobId, total) {
+                    clearInterval(pollTimer);
+                    var prevIdx = 0;
+
+                    pollTimer = setInterval(function () {
+                        get("/api/progress/" + jobId, function (err, d) {
+                            if (err || !d) return;
+
+                            var cur = d.current || 0;
+                            var tot = d.total || total;
+                            var pct = d.percent || 0;
+                            var vpct = d.video_percent || 0;
+                            var status = d.status || "";
+                            var note = d.note || "";
+                            var title = d.video_title || "";
+
+                            // Overall bar
+                            document.getElementById("fillBar").style.width = pct + "%";
+                            document.getElementById("pPct").textContent = pct + "%";
+                            document.getElementById("pCurrent").textContent = cur;
+                            document.getElementById("pTotal").textContent = tot;
+
+                            // Per-video bar
+                            document.getElementById("fillBarVideo").style.width = vpct + "%";
+
+                            // Status label
+                            var dotCls = "dot";
+                            if (status === "done") dotCls = "dot dot-done";
+                            if (status === "error") dotCls = "dot dot-err";
+                            var label = "Downloading...";
+                            if (status === "done") label = "All done!";
+                            if (status === "error") label = "Failed";
+                            if (status === "processing") label = "Merging...";
+                            if (status === "starting") label = "Starting...";
+                            document.getElementById("pStat").innerHTML = "<span class=\"" + dotCls + "\"></span>" + label;
+                            document.getElementById("pNote").textContent = note;
+                            document.getElementById("pVideoTitle").textContent = title ? " — " + title : "";
+
+                            // Update queue items
+                            if (cur > 0 && cur <= tot) {
+                                // Mark previous as done
+                                if (prevIdx > 0 && prevIdx !== cur) {
+                                    setQueueStatus(prevIdx - 1, "done", "done");
+                                }
+                                // Mark current as active
+                                setQueueStatus(cur - 1, "active", "downloading");
+                                if (title) {
+                                    var titleEl = document.getElementById("qtitle-" + (cur - 1));
+                                    if (titleEl) titleEl.textContent = title;
+                                }
+                                prevIdx = cur;
                             }
-                        }, 260);
-                        showToast("Deleted: " + fname, "success");
-                    } else {
-                        showToast("Could not delete file", "error");
+
+                            // Show per-video errors
+                            if (d.errors && d.errors.length > 0) {
+                                var errHtml = "";
+                                for (var e = 0; e < d.errors.length; e++) {
+                                    errHtml += "<div class=\"err-item\">&#9888; " + escHtml(d.errors[e]) + "</div>";
+                                }
+                                document.getElementById("errList").innerHTML = errHtml;
+                            }
+
+                            if (status === "done") {
+                                clearInterval(pollTimer);
+                                // Mark last video done
+                                if (cur > 0) setQueueStatus(cur - 1, "done", "done");
+                                resetDlBtn();
+                                loadFiles();
+                            }
+                            if (status === "error") {
+                                clearInterval(pollTimer);
+                                showErr(d.error || "Download failed");
+                                resetDlBtn();
+                            }
+                        });
+                    }, 700);
+                }
+
+                function setQueueStatus(idx, stateClass, label) {
+                    var badge = document.getElementById("qbadge-" + idx);
+                    if (badge) {
+                        badge.className = "q-badge q-" + stateClass;
+                        badge.textContent = label;
                     }
-                };
-                xhr.onerror = function () { showToast("Connection error", "error"); };
-                xhr.send();
-            }
+                }
 
-            // ── Toast notification ────────────────────────────────────────────────────
-            var toastTimer = null;
-            function showToast(msg, type) {
-                var t = document.getElementById("toast");
-                t.textContent = msg;
-                t.className = "toast show " + (type || "");
-                clearTimeout(toastTimer);
-                toastTimer = setTimeout(function () { t.className = "toast"; }, 2800);
-            }
+                function setProg(pct, status, note) {
+                    // Legacy — kept for compatibility, no-op now
+                }
 
-            // ── Clear ─────────────────────────────────────────────────────────────────
-            function clearAll() {
-                urlInput.value = "";
-                hide("vInfo"); hide("fmtSec"); hide("dlBar"); hide("prog"); hide("filesSec");
-                selFmt = null; allFmts = []; curURLs = [];
-                hideErr();
-                clearInterval(pollTimer);
-                dlBtn.disabled = true;
-                dlBtn.textContent = "Download";
-                selInfo.textContent = "No stream selected";
-            }
+                function resetDlBtn() {
+                    dlBtn.textContent = "Download Again";
+                    dlBtn.disabled = false;
+                }
 
-            // ── XHR helpers ───────────────────────────────────────────────────────────
-            function post(url, body, cb) {
-                var xhr = new XMLHttpRequest();
-                xhr.open("POST", url, true);
-                xhr.setRequestHeader("Content-Type", "application/json");
-                xhr.onload = function () {
-                    if (xhr.status !== 200) { cb("Server error " + xhr.status, null); return; }
-                    try { cb(null, JSON.parse(xhr.responseText)); }
-                    catch (e) { cb("Invalid server response", null); }
-                };
-                xhr.onerror = function () {
-                    cb("Cannot connect to server. Make sure app.py is running on port 5000.", null);
-                };
-                xhr.send(JSON.stringify(body));
-            }
+                // ── Load downloaded files ─────────────────────────────────────────────────
+                function loadFiles() {
+                    get("/api/files", function (err, files) {
+                        if (err || !files || files.length === 0) {
+                            document.getElementById("filesSec").classList.remove("show");
+                            document.getElementById("filesList").innerHTML = "";
+                            return;
+                        }
+                        show("filesSec");
 
-            function get(url, cb) {
-                var xhr = new XMLHttpRequest();
-                xhr.open("GET", url, true);
-                xhr.onload = function () {
-                    if (xhr.status !== 200) { cb("Server error " + xhr.status, null); return; }
-                    try { cb(null, JSON.parse(xhr.responseText)); }
-                    catch (e) { cb("Invalid JSON", null); }
-                };
-                xhr.onerror = function () { cb("Connection error", null); };
-                xhr.send();
-            }
+                        var html = "";
+                        for (var i = 0; i < files.length; i++) {
+                            var f = files[i];
+                            var parts = f.name.split(".");
+                            var ext = parts.length > 1 ? parts[parts.length - 1].toUpperCase().slice(0, 4) : "FILE";
+                            var dlUrl = "/api/files/" + encodeURIComponent(f.name);
+                            var delUrl = "/api/files/delete/" + encodeURIComponent(f.name);
+                            html += "<div class=\"frow\" id=\"frow-" + i + "\">";
+                            html += "<div class=\"fico\">" + escHtml(ext) + "</div>";
+                            html += "<span class=\"fname\">" + escHtml(f.name) + "</span>";
+                            html += "<span class=\"fsize\">" + fmtBytes(f.size) + "</span>";
+                            html += "<a class=\"btn bg sm\" href=\"" + dlUrl + "\">&#8595; Save</a>";
+                            html += "<button class=\"btn btn-danger btn-icon sm\" data-del=\"" + escHtml(delUrl) + "\" data-name=\"" + escHtml(f.name) + "\" title=\"Delete this file\">&#128465;</button>";
+                            html += "</div>";
+                        }
+                        document.getElementById("filesList").innerHTML = html;
 
-            // ── UI helpers ────────────────────────────────────────────────────────────
-            function show(id) { document.getElementById(id).classList.add("show"); }
-            function hide(id) { document.getElementById(id).classList.remove("show"); }
-            function showErr(m) { errBox.textContent = m; errBox.classList.add("show"); }
-            function hideErr() { errBox.classList.remove("show"); }
+                        // Attach per-file delete handlers
+                        var delBtns = document.getElementById("filesList").querySelectorAll("[data-del]");
+                        for (var d = 0; d < delBtns.length; d++) {
+                            delBtns[d].addEventListener("click", function () {
+                                var delUrl = this.getAttribute("data-del");
+                                var fname = this.getAttribute("data-name");
+                                var row = this.closest(".frow");
+                                deleteFile(delUrl, fname, row);
+                            });
+                        }
+                    });
+                }
 
-            function escHtml(s) {
-                return String(s)
-                    .replace(/&/g, "&amp;")
-                    .replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;")
-                    .replace(/"/g, "&quot;")
-                    .replace(/'/g, "&#39;");
-            }
+                // ── Clear ALL files ───────────────────────────────────────────────────────
+                function clearAllFiles() {
+                    clearFilesBtn.innerHTML = "<span class=\"spinner\"></span>";
+                    clearFilesBtn.disabled = true;
 
-            function fmtBytes(b) {
-                if (b < 1024) return b + " B";
-                if (b < 1048576) return (b / 1024).toFixed(1) + " KB";
-                return (b / 1048576).toFixed(1) + " MB";
-            }
+                    var xhr = new XMLHttpRequest();
+                    xhr.open("DELETE", "/api/files/clear", true);
+                    xhr.onload = function () {
+                        clearFilesBtn.innerHTML = "&#128465; Clear All";
+                        clearFilesBtn.disabled = false;
+                        if (xhr.status === 200) {
+                            var res = JSON.parse(xhr.responseText);
+                            showToast("Deleted " + res.deleted + " file" + (res.deleted !== 1 ? "s" : ""), "success");
+                            document.getElementById("filesSec").classList.remove("show");
+                            document.getElementById("filesList").innerHTML = "";
+                        } else {
+                            showToast("Failed to clear files", "error");
+                        }
+                    };
+                    xhr.onerror = function () {
+                        clearFilesBtn.innerHTML = "&#128465; Clear All";
+                        clearFilesBtn.disabled = false;
+                        showToast("Connection error", "error");
+                    };
+                    xhr.send();
+                }
 
-            // Load any existing files when page opens
-            loadFiles();
+                // ── Delete a single file ──────────────────────────────────────────────────
+                function deleteFile(delUrl, fname, row) {
+                    var xhr = new XMLHttpRequest();
+                    xhr.open("DELETE", delUrl, true);
+                    xhr.onload = function () {
+                        if (xhr.status === 200) {
+                            row.style.transition = "opacity .25s";
+                            row.style.opacity = "0";
+                            setTimeout(function () {
+                                row.remove();
+                                // If no rows left, hide the section
+                                var remaining = document.querySelectorAll("#filesList .frow");
+                                if (remaining.length === 0) {
+                                    document.getElementById("filesSec").classList.remove("show");
+                                }
+                            }, 260);
+                            showToast("Deleted: " + fname, "success");
+                        } else {
+                            showToast("Could not delete file", "error");
+                        }
+                    };
+                    xhr.onerror = function () { showToast("Connection error", "error"); };
+                    xhr.send();
+                }
 
-        })();
-    </script>
+                // ── Toast notification ────────────────────────────────────────────────────
+                var toastTimer = null;
+                function showToast(msg, type) {
+                    var t = document.getElementById("toast");
+                    t.textContent = msg;
+                    t.className = "toast show " + (type || "");
+                    clearTimeout(toastTimer);
+                    toastTimer = setTimeout(function () { t.className = "toast"; }, 2800);
+                }
+
+                // ── Clear ─────────────────────────────────────────────────────────────────
+                function clearAll() {
+                    urlInput.value = "";
+                    hide("vInfo"); hide("fmtSec"); hide("dlBar"); hide("prog"); hide("filesSec");
+                    selFmt = null; allFmts = []; curURLs = [];
+                    hideErr();
+                    clearInterval(pollTimer);
+                    dlBtn.disabled = true;
+                    dlBtn.textContent = "Download";
+                    selInfo.textContent = "No stream selected";
+                }
+
+                // ── XHR helpers ───────────────────────────────────────────────────────────
+                function post(url, body, cb) {
+                    var xhr = new XMLHttpRequest();
+                    xhr.open("POST", url, true);
+                    xhr.setRequestHeader("Content-Type", "application/json");
+                    xhr.onload = function () {
+                        var data;
+                        try { data = JSON.parse(xhr.responseText); } catch (e) { data = null; }
+                        if (xhr.status !== 200) {
+                            var msg = (data && data.error) ? data.error : ("Server error " + xhr.status);
+                            if (data && data.detail) {
+                                document.getElementById("errDetail").style.display = "block";
+                                document.getElementById("errDetailText").textContent = data.detail;
+                            }
+                            cb(msg, null);
+                            return;
+                        }
+                        cb(null, data || {});
+                    };
+                    xhr.onerror = function () {
+                        cb("Cannot connect to server. Is app.py running on port 5000?", null);
+                    };
+                    xhr.send(JSON.stringify(body));
+                }
+
+                function get(url, cb) {
+                    var xhr = new XMLHttpRequest();
+                    xhr.open("GET", url, true);
+                    xhr.onload = function () {
+                        if (xhr.status !== 200) { cb("Server error " + xhr.status, null); return; }
+                        try { cb(null, JSON.parse(xhr.responseText)); }
+                        catch (e) { cb("Invalid JSON", null); }
+                    };
+                    xhr.onerror = function () { cb("Connection error", null); };
+                    xhr.send();
+                }
+
+                // ── UI helpers ────────────────────────────────────────────────────────────
+                function show(id) { document.getElementById(id).classList.add("show"); }
+                function hide(id) { document.getElementById(id).classList.remove("show"); }
+                function showErr(m) { errBox.textContent = m; errBox.classList.add("show"); }
+                function hideErr() { errBox.classList.remove("show"); }
+
+                function escHtml(s) {
+                    return String(s)
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;")
+                        .replace(/"/g, "&quot;")
+                        .replace(/'/g, "&#39;");
+                }
+
+                function fmtBytes(b) {
+                    if (b < 1024) return b + " B";
+                    if (b < 1048576) return (b / 1024).toFixed(1) + " KB";
+                    return (b / 1048576).toFixed(1) + " MB";
+                }
+
+                // Load any existing files when page opens
+                loadFiles();
+
+            })();
+        </script>
 </body>
 
 </html>
