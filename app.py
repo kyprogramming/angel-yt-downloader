@@ -21,28 +21,11 @@ import re
 import threading
 import uuid
 import mimetypes
-import sys
 from flask import Flask, request, jsonify, send_file, Response
 from flask_cors import CORS
-import logging
-import traceback
 
 from pytubefix import YouTube, Playlist
 from pytubefix.cli import on_progress
-
-# ========== SETUP PROPER LOGGING ==========
-# Force stdout to flush immediately
-sys.stdout.reconfigure(line_buffering=True)
-
-# Configure logging to both file and console
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout),  # Print to console
-        logging.FileHandler('app_errors.log')  # Also save to file
-    ]
-)
 
 app = Flask(__name__)
 CORS(app)
@@ -95,30 +78,38 @@ def format_size(n):
 
 @app.route("/")
 def index():
-    try:
-        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html")
-        with open(path, "r", encoding="utf-8") as f:
-            return Response(f.read(), mimetype="text/html; charset=utf-8")
-    except Exception as e:
-        logging.error(f"Error serving index: {str(e)}")
-        logging.error(traceback.format_exc())
-        return jsonify({"error": str(e)}), 500
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html")
+    with open(path, "r", encoding="utf-8") as f:
+        return Response(f.read(), mimetype="text/html; charset=utf-8")
 
 
 @app.route("/api/formats", methods=["POST"])
 def get_formats():
     """
     Return all available streams for a YouTube URL.
+    pytubefix exposes:
+        yt.streams          — all streams
+        stream.itag         — unique stream ID
+        stream.mime_type    — e.g. video/mp4, audio/webm
+        stream.resolution   — e.g. "1080p" (video) or None (audio)
+        stream.abr          — audio bitrate e.g. "128kbps"
+        stream.fps          — frames per second
+        stream.filesize     — bytes (may be None for some streams)
+        stream.is_progressive — True = video+audio in one file
+        stream.includes_audio_track
+        stream.includes_video_track
     """
     url = (request.json or {}).get("url", "").strip()
     if not url:
         return jsonify({"error": "No URL provided"}), 400
 
     try:
-        logging.info(f"Fetching formats for URL: {url}")
-        yt = YouTube(url, use_oauth=True, allow_oauth_cache=True)
+        yt = YouTube(url)
 
         # ── Preset "smart" formats ────────────────────────────────────────
+        # All merged presets use FFmpeg to combine video + best audio into MP4.
+        # Resolutions map:  4K=2160p  2K=1440p  FHD=1080p  HD=720p
+        #                   SD=480p   360p  240p  144p
         def make_preset(fid, label, res, note_extra=""):
             return {
                 "format_id":  fid,
@@ -220,8 +211,6 @@ def get_formats():
         secs = yt.length or 0
         duration = "{}:{:02d}".format(secs // 60, secs % 60)
 
-        logging.info(f"Successfully fetched formats for: {yt.title}")
-        
         return jsonify({
             "title":     yt.title or "Unknown",
             "thumbnail": thumb,
@@ -231,14 +220,6 @@ def get_formats():
         })
 
     except Exception as e:
-        logging.error("=" * 60)
-        logging.error("ERROR in /api/formats:")
-        logging.error(f"URL: {url}")
-        logging.error(f"Error type: {type(e).__name__}")
-        logging.error(f"Error message: {str(e)}")
-        logging.error("Full traceback:")
-        logging.error(traceback.format_exc())
-        logging.error("=" * 60)
         return jsonify({"error": str(e)}), 500
 
 
@@ -369,10 +350,8 @@ def start_download():
 
         saved_files = []
         try:
-            logging.info(f"Starting download job {job_id} for {len(urls)} URL(s)")
-            
             for url in urls:
-                yt = YouTube(url, use_oauth=True, allow_oauth_cache=True, on_progress_callback=build_progress_hook(job_id))
+                yt = YouTube(url, on_progress_callback=build_progress_hook(job_id))
                 title_safe = sanitize(yt.title or "video")
 
                 # Map of preset format_id → target resolution string
@@ -429,11 +408,8 @@ def start_download():
                 "percent": 100,
                 "files":   saved_files,
             })
-            logging.info(f"Download job {job_id} completed successfully. Files: {saved_files}")
 
         except Exception as e:
-            logging.error(f"Download job {job_id} failed: {str(e)}")
-            logging.error(traceback.format_exc())
             progress_store[job_id].update({
                 "status": "error",
                 "error":  str(e),
@@ -450,16 +426,12 @@ def get_progress(job_id):
 
 @app.route("/api/files")
 def list_files():
-    try:
-        files = []
-        for fname in sorted(os.listdir(DOWNLOAD_DIR), reverse=True):
-            fp = os.path.join(DOWNLOAD_DIR, fname)
-            if os.path.isfile(fp):
-                files.append({"name": fname, "size": os.path.getsize(fp)})
-        return jsonify(files[:20])  # Only return last 20 files
-    except Exception as e:
-        logging.error(f"Error listing files: {str(e)}")
-        return jsonify([])
+    files = []
+    for fname in sorted(os.listdir(DOWNLOAD_DIR)):
+        fp = os.path.join(DOWNLOAD_DIR, fname)
+        if os.path.isfile(fp):
+            files.append({"name": fname, "size": os.path.getsize(fp)})
+    return jsonify(files)
 
 
 @app.route("/api/files/clear", methods=["DELETE"])
@@ -505,45 +477,12 @@ def serve_file(filename):
     )
 
 
-# ========== GLOBAL ERROR HANDLER WITH LOGGING ==========
-@app.errorhandler(Exception)
-def handle_error(e):
-    """Catch ALL unhandled exceptions and log them"""
-    logging.error("=" * 60)
-    logging.error("UNHANDLED EXCEPTION CAUGHT BY GLOBAL HANDLER")
-    logging.error(f"Error type: {type(e).__name__}")
-    logging.error(f"Error message: {str(e)}")
-    logging.error("Full traceback:")
-    logging.error(traceback.format_exc())
-    logging.error("=" * 60)
-    
-    # Also print to stdout as backup
-    print("\n" + "!" * 60, flush=True)
-    print(f"ERROR: {type(e).__name__}: {str(e)}", flush=True)
-    print(traceback.format_exc(), flush=True)
-    print("!" * 60 + "\n", flush=True)
-    
-    return jsonify({"error": str(e), "type": type(e).__name__}), 500
-
-
-@app.before_request
-def log_request_info():
-    """Log all incoming requests"""
-    logging.info(f"Request: {request.method} {request.path}")
-    if request.is_json:
-        logging.debug(f"Request data: {request.get_json()}")
-
-
-# ========== RUN THE APP ==========
 if __name__ == "__main__":
-    print("=" * 50)
-    print("  YouTube Downloader (pytubefix)")
-    print("  Open: http://localhost:5000")
-    print("  Files: ./downloads/")
-    print("=" * 50)
-    
-    # Configure for Render.com
-    port = int(os.environ.get("PORT", 5000))
-    
-    # Set debug=False for production, but keep error logging
-    app.run(host="0.0.0.0", port=port, debug=False, threaded=True)
+    print("")
+    print("  +------------------------------------------+")
+    print("  |  YouTube Downloader (pytubefix)           |")
+    print("  |  Open:  http://localhost:5000             |")
+    print("  |  Files: ./downloads/                      |")
+    print("  +------------------------------------------+")
+    print("")
+    app.run(debug=False, port=5000, threaded=True)

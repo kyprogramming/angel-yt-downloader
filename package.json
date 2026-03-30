@@ -1,0 +1,8 @@
+{
+    "name": "youtube-downloader",
+    "version": "1.0.0",
+    "description": "YouTube downloader with PO token support",
+    "dependencies": {
+        "youtube-po-token-generator": "^0.6.0"
+    }
+}
